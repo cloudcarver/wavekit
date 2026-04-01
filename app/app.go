@@ -1,6 +1,7 @@
 package app
 
 import (
+	root "github.com/cloudcarver/waitkit"
 	"github.com/cloudcarver/waitkit/pkg/config"
 	"github.com/cloudcarver/waitkit/pkg/zgen/apigen"
 
@@ -20,6 +21,10 @@ func Init(anclaxApp *anclax_app.Application, myapp anclax_app.Plugin) (*App, err
 func InitAnclaxApplication(cfg *config.Config) (*anclax_app.Application, error) {
 	anclaxApp, err := anclax_wire.InitializeApplication(&cfg.Anclax, anclax_config.DefaultLibConfig())
 	if err != nil {
+		return nil, err
+	}
+
+	if err := root.PlugWebStatic(anclaxApp.GetServer().GetApp()); err != nil {
 		return nil, err
 	}
 	return anclaxApp, nil
