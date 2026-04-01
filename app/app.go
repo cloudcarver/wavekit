@@ -1,0 +1,62 @@
+package app
+
+import (
+	"github.com/cloudcarver/waitkit/pkg/config"
+	"github.com/cloudcarver/waitkit/pkg/zgen/apigen"
+
+	anclax_app "github.com/cloudcarver/anclax/pkg/app"
+	anclax_config "github.com/cloudcarver/anclax/pkg/config"
+	anclax_wire "github.com/cloudcarver/anclax/wire"
+	"github.com/gofiber/fiber/v3"
+)
+
+func Init(anclaxApp *anclax_app.Application, myapp anclax_app.Plugin) (*App, error) {
+	if err := anclaxApp.Plug(myapp); err != nil {
+		return nil, err
+	}
+	return &App{AnclaxApp: anclaxApp}, nil
+}
+
+func InitAnclaxApplication(cfg *config.Config) (*anclax_app.Application, error) {
+	anclaxApp, err := anclax_wire.InitializeApplication(&cfg.Anclax, anclax_config.DefaultLibConfig())
+	if err != nil {
+		return nil, err
+	}
+	return anclaxApp, nil
+}
+
+type App struct {
+	AnclaxApp *anclax_app.Application
+}
+
+func (a *App) Start() error {
+	return a.AnclaxApp.Start()
+}
+
+func (a *App) Close() {
+	a.AnclaxApp.Close()
+}
+
+type Plugin struct {
+	serverInterface apigen.ServerInterface
+	validator       apigen.Validator
+}
+
+func NewPlugin(serverInterface apigen.ServerInterface, validator apigen.Validator) anclax_app.Plugin {
+	return &Plugin{
+		serverInterface: serverInterface,
+		validator:       validator,
+	}
+}
+
+func (p *Plugin) PlugTo(anclaxApp *anclax_app.Application) error {
+	p.plugToFiberApp(anclaxApp.GetServer().GetApp())
+	return nil
+}
+
+func (p *Plugin) plugToFiberApp(fiberApp *fiber.App) {
+	apigen.RegisterHandlersWithOptions(fiberApp, apigen.NewXMiddleware(p.serverInterface, p.validator), apigen.FiberServerOptions{
+		BaseURL:     "/api/v1",
+		Middlewares: []apigen.MiddlewareFunc{},
+	})
+}

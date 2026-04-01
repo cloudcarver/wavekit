@@ -1,0 +1,7 @@
+BEGIN;
+
+DROP TABLE IF EXISTS notebook_cells;
+DROP TABLE IF EXISTS notebooks;
+DROP TABLE IF EXISTS clusters;
+
+COMMIT;

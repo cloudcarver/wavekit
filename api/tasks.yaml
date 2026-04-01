@@ -1,0 +1,17 @@
+tasks:
+  - name: AutoIncrementCounter
+    description: Increment the counter
+    cronjob:
+      cronExpression: "*/5 * * * * *"
+    retryPolicy:
+      interval: 30m
+      maxAttempts: -1
+    parameters:
+      $ref: ./schemas/counter/counter.yaml#schemas/IncrementCounterParams
+  - name: IncrementCounter
+    description: Increment the counter
+    retryPolicy:
+      interval: 30m
+      maxAttempts: -1
+    parameters:
+      $ref: ./schemas/counter/counter.yaml#schemas/IncrementCounterParams

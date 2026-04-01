@@ -1,0 +1,132 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f7f8;
+  --foreground: #19191c;
+  --card: #ffffff;
+  --card-foreground: #19191c;
+  --popover: #ffffff;
+  --popover-foreground: #19191c;
+  --primary: #18181b;
+  --primary-foreground: #ffffff;
+  --secondary: #f7f7fb;
+  --secondary-foreground: #2b2b31;
+  --muted: #f4f4f6;
+  --muted-foreground: #6f6f78;
+  --accent: #f3f4fb;
+  --accent-foreground: #2b2b31;
+  --destructive: #d84f68;
+  --destructive-foreground: #ffffff;
+  --border: #e7e7ec;
+  --input: #e3e4ea;
+  --ring: #5e6ad2;
+  --success: #0f766e;
+  --warning: #b7791f;
+  --radius: 0.25rem;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+::selection {
+  background: #dfe3ff;
+}
+
+.wavekit-code-editor .cm-editor {
+  background: transparent;
+}
+
+.wavekit-code-editor .cm-scroller {
+  font-family: var(--font-geist-mono), monospace;
+  line-height: 1.55;
+}
+
+.wavekit-code-editor .cm-content,
+.wavekit-code-editor .cm-gutter {
+  min-height: 220px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 12px;
+}
+
+.wavekit-code-editor .cm-gutters {
+  border-right: 1px solid color-mix(in srgb, var(--border) 90%, white);
+  background: #f6f7fb;
+  color: var(--muted-foreground);
+}
+
+.wavekit-code-editor .cm-activeLine,
+.wavekit-code-editor .cm-activeLineGutter {
+  background: #f1f4ff;
+}
+
+.wavekit-code-editor .cm-focused {
+  outline: none;
+}
+
+.wavekit-code-editor .cm-selectionBackground,
+.wavekit-code-editor .cm-content ::selection {
+  background: #dfe3ff !important;
+}

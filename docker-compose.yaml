@@ -1,0 +1,86 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: ./dev/Dockerfile.dev
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "2910:2910"
+    command:
+      - go
+      - run
+      - ./cmd/main.go
+    environment:
+      WAVEKIT_ANCLAX_PORT: "2910"
+      WAVEKIT_ANCLAX_PG_DSN: postgresql://postgres:postgres@db:5432/postgres?sslmode=disable
+    volumes:
+      - ./:/app
+      - go-data:/go/pkg/mod
+      - go-build-data:/root/.cache/go-build
+
+  db:
+    image: postgres:16
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  rw-svc:
+    image: risingwavelabs/risingwave:v2.7.2
+    ports:
+      - 4566:4566
+      - 5690:5690
+      - 5691:5691
+      - 1250:1250
+    volumes:
+      - test-rw-meta-store:/root/meta
+      - test-rw-data-store:/root/state_store
+    command: "standalone --meta-opts=\" \
+                    --listen-addr 0.0.0.0:5690 \
+                    --advertise-addr rw-svc:5690 \
+                    --dashboard-host 0.0.0.0:5691 \
+                    --prometheus-host 0.0.0.0:1250 \
+                    --backend sqlite  \
+                    --sql-endpoint /root/meta/single_node.db \
+                    --state-store hummock+fs:///root/state_store \
+                    --data-directory hummock_001\" \
+                 --compute-opts=\" \
+                    --listen-addr 0.0.0.0:5688 \
+                    --prometheus-listener-addr 0.0.0.0:1250 \
+                    --advertise-addr rw-svc:5688 \
+                    --async-stack-trace verbose \
+                    --parallelism 4 \
+                    --total-memory-bytes 2147483648 \
+                    --role both \
+                    --meta-address http://0.0.0.0:5690\" \
+                 --frontend-opts=\" \
+                   --listen-addr 0.0.0.0:4566 \
+                   --advertise-addr rw-svc:4566 \
+                   --prometheus-listener-addr 0.0.0.0:1250 \
+                   --health-check-listener-addr 0.0.0.0:6786 \
+                   --meta-addr http://0.0.0.0:5690 \
+                   --frontend-total-memory-bytes=500000000\" \
+                 --compactor-opts=\" \
+                   --listen-addr 0.0.0.0:6660 \
+                   --prometheus-listener-addr 0.0.0.0:1250 \
+                   --advertise-addr rw-svc:6660 \
+                   --meta-address http://0.0.0.0:5690 \
+                   --compactor-total-memory-bytes=1000000000\""
+
+volumes:
+  db-data:
+  go-data:
+  go-build-data:
+  test-rw-meta-store:
+  test-rw-data-store:

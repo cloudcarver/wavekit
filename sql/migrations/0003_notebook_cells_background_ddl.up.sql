@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE notebook_cells
+ADD COLUMN background_ddl BOOLEAN NOT NULL DEFAULT FALSE;
+
+COMMIT;

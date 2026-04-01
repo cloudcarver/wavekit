@@ -1,0 +1,723 @@
+openapi: 3.0.0
+
+info:
+  title: WaveKit API
+  version: "1.0"
+  description: API for managing RisingWave clusters and SQL notebooks.
+
+servers:
+  - url: /api/v1
+    description: Base API path
+
+paths:
+  /clusters/connect:
+    post:
+      summary: Connect a RisingWave cluster
+      operationId: connectCluster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectClusterRequest'
+      responses:
+        '200':
+          description: Connected cluster
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConnectClusterResult'
+      security: []
+
+  /clusters:
+    get:
+      summary: List connected clusters
+      operationId: listClusters
+      responses:
+        '200':
+          description: Connected clusters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterList'
+      security: []
+
+  /clusters/background-progress:
+    get:
+      summary: List background DDL and CDC progress across all clusters and databases
+      operationId: listClusterBackgroundProgress
+      responses:
+        '200':
+          description: Background progress by cluster and database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackgroundProgressList'
+      security: []
+
+  /clusters/{cluster_uuid}:
+    parameters:
+      - $ref: '#/components/parameters/ClusterUuid'
+    put:
+      summary: Update cluster settings
+      operationId: updateCluster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateClusterRequest'
+      responses:
+        '200':
+          description: Updated cluster
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cluster'
+      security: []
+    delete:
+      summary: Delete a cluster connection
+      operationId: deleteCluster
+      responses:
+        '204':
+          description: Cluster removed
+      security: []
+
+  /clusters/{cluster_uuid}/databases:
+    parameters:
+      - $ref: '#/components/parameters/ClusterUuid'
+    get:
+      summary: List databases for a cluster
+      operationId: listClusterDatabases
+      responses:
+        '200':
+          description: Cluster databases
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterDatabaseList'
+      security: []
+
+  /clusters/{cluster_uuid}/{database}/relations:
+    parameters:
+      - $ref: '#/components/parameters/ClusterUuid'
+      - $ref: '#/components/parameters/Database'
+    get:
+      summary: List relation metadata for a cluster database
+      operationId: listClusterRelations
+      responses:
+        '200':
+          description: Relation explorer data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterRelationList'
+      security: []
+
+  /clusters/{cluster_uuid}/{database}/sql:
+    parameters:
+      - $ref: '#/components/parameters/ClusterUuid'
+      - $ref: '#/components/parameters/Database'
+    post:
+      summary: Execute SQL against a cluster database
+      operationId: executeClusterSql
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExecuteSqlRequest'
+      responses:
+        '200':
+          description: SQL execution result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SqlExecutionResult'
+      security: []
+
+  /notebooks:
+    get:
+      summary: List notebooks
+      operationId: listNotebooks
+      responses:
+        '200':
+          description: SQL notebooks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotebookList'
+      security: []
+    post:
+      summary: Create notebook
+      operationId: createNotebook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotebookRequest'
+      responses:
+        '201':
+          description: Notebook created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateNotebookResult'
+      security: []
+
+  /notebooks/{notebook_uuid}:
+    parameters:
+      - $ref: '#/components/parameters/NotebookUuid'
+    get:
+      summary: Get notebook content
+      operationId: getNotebook
+      responses:
+        '200':
+          description: Notebook content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notebook'
+      security: []
+    delete:
+      summary: Delete notebook
+      operationId: deleteNotebook
+      responses:
+        '204':
+          description: Notebook removed
+      security: []
+
+  /notebooks/{notebook_uuid}/cells:
+    parameters:
+      - $ref: '#/components/parameters/NotebookUuid'
+    post:
+      summary: Create notebook cell
+      operationId: createNotebookCell
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotebookCellRequest'
+      responses:
+        '201':
+          description: Notebook cell created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateNotebookCellResult'
+      security: []
+
+  /notebooks/{notebook_uuid}/cells/{cell_uuid}:
+    parameters:
+      - $ref: '#/components/parameters/NotebookUuid'
+      - $ref: '#/components/parameters/CellUuid'
+    put:
+      summary: Update notebook cell
+      operationId: updateNotebookCell
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotebookCellRequest'
+      responses:
+        '200':
+          description: Updated notebook cell
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotebookCell'
+      security: []
+    delete:
+      summary: Delete notebook cell
+      operationId: deleteNotebookCell
+      responses:
+        '204':
+          description: Notebook cell removed
+      security: []
+
+  /notebooks/{notebook_uuid}/cells/order:
+    parameters:
+      - $ref: '#/components/parameters/NotebookUuid'
+    post:
+      summary: Reorder notebook cells
+      operationId: reorderNotebookCells
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderNotebookCellsRequest'
+      responses:
+        '204':
+          description: Notebook cell order updated
+      security: []
+
+components:
+  parameters:
+    ClusterUuid:
+      name: cluster_uuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    NotebookUuid:
+      name: notebook_uuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    CellUuid:
+      name: cell_uuid
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Database:
+      name: database
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    ConnectClusterRequest:
+      type: object
+      required:
+        - clusterName
+        - sqlConnectionString
+      properties:
+        clusterName:
+          type: string
+        sqlConnectionString:
+          type: string
+        metaNodeGrpcUrl:
+          type: string
+        metaNodeHttpUrl:
+          type: string
+
+    ConnectClusterResult:
+      type: object
+      required:
+        - clusterUuid
+      properties:
+        clusterUuid:
+          type: string
+          format: uuid
+
+    BackgroundProgressDatabase:
+      type: object
+      required:
+        - database
+        - ddl
+        - cdc
+      properties:
+        database:
+          type: string
+        ddl:
+          $ref: '#/components/schemas/SqlExecutionResult'
+        cdc:
+          $ref: '#/components/schemas/SqlExecutionResult'
+
+    BackgroundProgressCluster:
+      type: object
+      required:
+        - clusterUuid
+        - clusterName
+        - databases
+      properties:
+        clusterUuid:
+          type: string
+          format: uuid
+        clusterName:
+          type: string
+        databases:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackgroundProgressDatabase'
+        error:
+          type: string
+
+    BackgroundProgressList:
+      type: object
+      required:
+        - clusters
+      properties:
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackgroundProgressCluster'
+
+    UpdateClusterRequest:
+      type: object
+      required:
+        - clusterName
+        - sqlConnectionString
+      properties:
+        clusterName:
+          type: string
+        sqlConnectionString:
+          type: string
+        metaNodeGrpcUrl:
+          type: string
+        metaNodeHttpUrl:
+          type: string
+
+    Cluster:
+      type: object
+      required:
+        - clusterUuid
+        - clusterName
+        - sqlConnectionString
+        - metaNodeGrpcUrl
+        - metaNodeHttpUrl
+        - connectionStatus
+      properties:
+        clusterUuid:
+          type: string
+          format: uuid
+        clusterName:
+          type: string
+        sqlConnectionString:
+          type: string
+        metaNodeGrpcUrl:
+          type: string
+        metaNodeHttpUrl:
+          type: string
+        connectionStatus:
+          $ref: '#/components/schemas/ConnectionStatus'
+
+    ClusterList:
+      type: object
+      required:
+        - clusters
+      properties:
+        clusters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Cluster'
+
+    EndpointCheck:
+      type: object
+      required:
+        - ok
+        - message
+      properties:
+        ok:
+          type: boolean
+        message:
+          type: string
+
+    ConnectionStatus:
+      type: object
+      required:
+        - sql
+        - meta
+        - checkedAt
+      properties:
+        sql:
+          $ref: '#/components/schemas/EndpointCheck'
+        meta:
+          $ref: '#/components/schemas/EndpointCheck'
+        checkedAt:
+          type: string
+          format: date-time
+
+    DatabaseEntry:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+
+    ClusterDatabaseList:
+      type: object
+      required:
+        - databases
+      properties:
+        databases:
+          type: array
+          items:
+            $ref: '#/components/schemas/DatabaseEntry'
+
+    RelationColumn:
+      type: object
+      required:
+        - name
+        - dataType
+      properties:
+        name:
+          type: string
+        dataType:
+          type: string
+
+    Relation:
+      type: object
+      required:
+        - schemaName
+        - relationName
+        - relationType
+        - columns
+      properties:
+        schemaName:
+          type: string
+        relationName:
+          type: string
+        relationType:
+          type: string
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelationColumn'
+
+    RelationSchema:
+      type: object
+      required:
+        - schemaName
+        - relations
+      properties:
+        schemaName:
+          type: string
+        relations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relation'
+
+    RelationCategory:
+      type: object
+      required:
+        - name
+        - schemas
+      properties:
+        name:
+          type: string
+        schemas:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelationSchema'
+
+    ClusterRelationList:
+      type: object
+      required:
+        - categories
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelationCategory'
+
+    ExecuteSqlRequest:
+      type: object
+      required:
+        - statement
+      properties:
+        statement:
+          type: string
+
+    SqlValue:
+      type: string
+      nullable: true
+
+    SqlRow:
+      type: object
+      required:
+        - values
+      properties:
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/SqlValue'
+
+    SqlExecutionResult:
+      type: object
+      required:
+        - columns
+        - rows
+        - commandTag
+        - rowsAffected
+      properties:
+        columns:
+          type: array
+          items:
+            type: string
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/SqlRow'
+        commandTag:
+          type: string
+        rowsAffected:
+          type: integer
+          format: int64
+        error:
+          type: string
+          description: SQL execution error returned as a normal response payload.
+
+    NotebookSummary:
+      type: object
+      required:
+        - notebookUuid
+        - notebookName
+        - updatedAt
+      properties:
+        notebookUuid:
+          type: string
+          format: uuid
+        notebookName:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    NotebookList:
+      type: object
+      required:
+        - notebooks
+      properties:
+        notebooks:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotebookSummary'
+
+    CreateNotebookRequest:
+      type: object
+      required:
+        - notebookName
+      properties:
+        notebookName:
+          type: string
+
+    CreateNotebookResult:
+      type: object
+      required:
+        - notebookUuid
+      properties:
+        notebookUuid:
+          type: string
+          format: uuid
+
+    NotebookCellType:
+      type: string
+      enum:
+        - SQL
+        - Shell
+
+    NotebookCell:
+      type: object
+      required:
+        - cellUuid
+        - cellType
+        - backgroundDdl
+        - content
+        - orderIndex
+        - updatedAt
+      properties:
+        cellUuid:
+          type: string
+          format: uuid
+        cellType:
+          $ref: '#/components/schemas/NotebookCellType'
+        clusterUuid:
+          type: string
+          format: uuid
+          nullable: true
+        database:
+          type: string
+          nullable: true
+        backgroundDdl:
+          type: boolean
+        content:
+          type: string
+        orderIndex:
+          type: integer
+          format: int32
+        updatedAt:
+          type: string
+          format: date-time
+
+    Notebook:
+      type: object
+      required:
+        - notebookUuid
+        - notebookName
+        - cells
+        - updatedAt
+      properties:
+        notebookUuid:
+          type: string
+          format: uuid
+        notebookName:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        cells:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotebookCell'
+
+    CreateNotebookCellRequest:
+      type: object
+      required:
+        - cellType
+        - content
+      properties:
+        cellType:
+          $ref: '#/components/schemas/NotebookCellType'
+        clusterUuid:
+          type: string
+          format: uuid
+          nullable: true
+        database:
+          type: string
+          nullable: true
+        backgroundDdl:
+          type: boolean
+        content:
+          type: string
+
+    CreateNotebookCellResult:
+      type: object
+      required:
+        - cellUuid
+      properties:
+        cellUuid:
+          type: string
+          format: uuid
+
+    UpdateNotebookCellRequest:
+      type: object
+      required:
+        - cellType
+        - content
+      properties:
+        cellType:
+          $ref: '#/components/schemas/NotebookCellType'
+        clusterUuid:
+          type: string
+          format: uuid
+          nullable: true
+        database:
+          type: string
+          nullable: true
+        backgroundDdl:
+          type: boolean
+        content:
+          type: string
+
+    ReorderNotebookCellsRequest:
+      type: object
+      required:
+        - cellUuids
+      properties:
+        cellUuids:
+          type: array
+          items:
+            type: string
+            format: uuid
