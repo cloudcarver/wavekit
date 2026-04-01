@@ -2,6 +2,8 @@
 
 WaveKit is a lightweight workspace for [RisingWave](https://risingwave.com/) clusters.
 
+![cover](assets/cover.png)
+
 It gives you a simple UI to:
 
 - [x] Browse cluster databases and relation metadata
