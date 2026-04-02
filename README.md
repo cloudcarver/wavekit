@@ -16,11 +16,11 @@ It gives you a simple UI to:
 Run WaveKit with the bundled PostgreSQL image:
 
 ```bash
-docker run -d -p 5677:5677 --name wavekit -v wavekit-data:/var/lib/postgresql cloudcarver/wavekit:v0.1.0-pgbundle
+docker run -d -p 5677:5677 --name wavekit -v wavekit-data:/var/lib/postgresql cloudcarver/wavekit:v0.2.0-pgbundle
 ```
 
 Then open:
 
 - http://localhost:5677
 
-The `cloudcarver/wavekit:v0.1.0-pgbundle` image includes WaveKit and PostgreSQL in one container. Application data is stored in the `wavekit-data` Docker volume.
+The `cloudcarver/wavekit:v0.2.0-pgbundle` image includes WaveKit and PostgreSQL in one container. Application data is stored in the `wavekit-data` Docker volume.
