@@ -8,6 +8,7 @@ It gives you a simple UI to:
 
 - [x] Browse cluster databases and relation metadata
 - [x] SQL notebooks
+- [ ] Background DDLs watcher
 - [ ] Built-in coding agent
 - [ ] Streaming graph
 
