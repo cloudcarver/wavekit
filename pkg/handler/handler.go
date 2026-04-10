@@ -92,6 +92,33 @@ func (h *Handler) ExecuteClusterSql(c fiber.Ctx, clusterUuid uuid.UUID, database
 	return c.JSON(result)
 }
 
+func (h *Handler) ListBackgroundDdls(c fiber.Ctx) error {
+	result, err := h.service.ListBackgroundDDLs(c.Context())
+	if err != nil {
+		return writeServiceError(c, err)
+	}
+	return c.JSON(result)
+}
+
+func (h *Handler) CreateBackgroundDdl(c fiber.Ctx) error {
+	var req apigen.CreateBackgroundDdlRequest
+	if err := c.Bind().Body(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).SendString(err.Error())
+	}
+	result, err := h.service.CreateBackgroundDDL(c.Context(), req)
+	if err != nil {
+		return writeServiceError(c, err)
+	}
+	return c.Status(fiber.StatusAccepted).JSON(result)
+}
+
+func (h *Handler) DeleteBackgroundDdl(c fiber.Ctx, id uuid.UUID) error {
+	if err := h.service.DeleteBackgroundDDL(c.Context(), id); err != nil {
+		return writeServiceError(c, err)
+	}
+	return c.SendStatus(fiber.StatusAccepted)
+}
+
 func (h *Handler) ListNotebooks(c fiber.Ctx) error {
 	result, err := h.service.ListNotebooks(c.Context())
 	if err != nil {
@@ -171,7 +198,7 @@ func (h *Handler) ReorderNotebookCells(c fiber.Ctx, notebookUuid uuid.UUID) erro
 
 func writeServiceError(c fiber.Ctx, err error) error {
 	switch {
-	case errors.Is(err, service.ErrClusterNotFound), errors.Is(err, service.ErrNotebookNotFound), errors.Is(err, service.ErrNotebookCellNotFound):
+	case errors.Is(err, service.ErrClusterNotFound), errors.Is(err, service.ErrNotebookNotFound), errors.Is(err, service.ErrNotebookCellNotFound), errors.Is(err, service.ErrBackgroundDdlNotFound):
 		return c.Status(fiber.StatusNotFound).SendString(err.Error())
 	case errors.Is(err, service.ErrInvalidInput), errors.Is(err, service.ErrInvalidCellOrder):
 		return c.Status(fiber.StatusBadRequest).SendString(err.Error())

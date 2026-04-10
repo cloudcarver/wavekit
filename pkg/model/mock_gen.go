@@ -43,6 +43,20 @@ func (m *MockModelInterface) EXPECT() *MockModelInterfaceMockRecorder {
 	return m.recorder
 }
 
+// CancelPendingBackgroundDdlProgresses mocks base method.
+func (m *MockModelInterface) CancelPendingBackgroundDdlProgresses(ctx context.Context, jobID uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelPendingBackgroundDdlProgresses", ctx, jobID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CancelPendingBackgroundDdlProgresses indicates an expected call of CancelPendingBackgroundDdlProgresses.
+func (mr *MockModelInterfaceMockRecorder) CancelPendingBackgroundDdlProgresses(ctx, jobID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelPendingBackgroundDdlProgresses", reflect.TypeOf((*MockModelInterface)(nil).CancelPendingBackgroundDdlProgresses), ctx, jobID)
+}
+
 // Close mocks base method.
 func (m *MockModelInterface) Close() {
 	m.ctrl.T.Helper()
@@ -53,6 +67,35 @@ func (m *MockModelInterface) Close() {
 func (mr *MockModelInterfaceMockRecorder) Close() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockModelInterface)(nil).Close))
+}
+
+// CreateBackgroundDdlJob mocks base method.
+func (m *MockModelInterface) CreateBackgroundDdlJob(ctx context.Context, arg querier.CreateBackgroundDdlJobParams) (*querier.BackgroundDdlJob, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBackgroundDdlJob", ctx, arg)
+	ret0, _ := ret[0].(*querier.BackgroundDdlJob)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateBackgroundDdlJob indicates an expected call of CreateBackgroundDdlJob.
+func (mr *MockModelInterfaceMockRecorder) CreateBackgroundDdlJob(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBackgroundDdlJob", reflect.TypeOf((*MockModelInterface)(nil).CreateBackgroundDdlJob), ctx, arg)
+}
+
+// CreateBackgroundDdlProgress mocks base method.
+func (m *MockModelInterface) CreateBackgroundDdlProgress(ctx context.Context, arg querier.CreateBackgroundDdlProgressParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateBackgroundDdlProgress", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CreateBackgroundDdlProgress indicates an expected call of CreateBackgroundDdlProgress.
+func (mr *MockModelInterfaceMockRecorder) CreateBackgroundDdlProgress(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateBackgroundDdlProgress", reflect.TypeOf((*MockModelInterface)(nil).CreateBackgroundDdlProgress), ctx, arg)
 }
 
 // CreateCluster mocks base method.
@@ -142,6 +185,21 @@ func (mr *MockModelInterfaceMockRecorder) DeleteNotebookCell(ctx, arg any) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNotebookCell", reflect.TypeOf((*MockModelInterface)(nil).DeleteNotebookCell), ctx, arg)
 }
 
+// GetBackgroundDdlJob mocks base method.
+func (m *MockModelInterface) GetBackgroundDdlJob(ctx context.Context, id uuid.UUID) (*querier.BackgroundDdlJob, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBackgroundDdlJob", ctx, id)
+	ret0, _ := ret[0].(*querier.BackgroundDdlJob)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBackgroundDdlJob indicates an expected call of GetBackgroundDdlJob.
+func (mr *MockModelInterfaceMockRecorder) GetBackgroundDdlJob(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBackgroundDdlJob", reflect.TypeOf((*MockModelInterface)(nil).GetBackgroundDdlJob), ctx, id)
+}
+
 // GetCluster mocks base method.
 func (m *MockModelInterface) GetCluster(ctx context.Context, clusterUuid uuid.UUID) (*querier.Cluster, error) {
 	m.ctrl.T.Helper()
@@ -170,6 +228,21 @@ func (m *MockModelInterface) GetCounter(ctx context.Context) (*querier.Counter, 
 func (mr *MockModelInterfaceMockRecorder) GetCounter(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCounter", reflect.TypeOf((*MockModelInterface)(nil).GetCounter), ctx)
+}
+
+// GetNextBackgroundDdlProgress mocks base method.
+func (m *MockModelInterface) GetNextBackgroundDdlProgress(ctx context.Context, jobID uuid.UUID) (*querier.BackgroundDdlProgress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNextBackgroundDdlProgress", ctx, jobID)
+	ret0, _ := ret[0].(*querier.BackgroundDdlProgress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNextBackgroundDdlProgress indicates an expected call of GetNextBackgroundDdlProgress.
+func (mr *MockModelInterfaceMockRecorder) GetNextBackgroundDdlProgress(ctx, jobID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextBackgroundDdlProgress", reflect.TypeOf((*MockModelInterface)(nil).GetNextBackgroundDdlProgress), ctx, jobID)
 }
 
 // GetNextNotebookCellOrder mocks base method.
@@ -245,6 +318,51 @@ func (mr *MockModelInterfaceMockRecorder) IncrementCounter(ctx any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementCounter", reflect.TypeOf((*MockModelInterface)(nil).IncrementCounter), ctx)
 }
 
+// ListBackgroundDdlJobs mocks base method.
+func (m *MockModelInterface) ListBackgroundDdlJobs(ctx context.Context) ([]*querier.BackgroundDdlJob, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBackgroundDdlJobs", ctx)
+	ret0, _ := ret[0].([]*querier.BackgroundDdlJob)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBackgroundDdlJobs indicates an expected call of ListBackgroundDdlJobs.
+func (mr *MockModelInterfaceMockRecorder) ListBackgroundDdlJobs(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBackgroundDdlJobs", reflect.TypeOf((*MockModelInterface)(nil).ListBackgroundDdlJobs), ctx)
+}
+
+// ListBackgroundDdlProgresses mocks base method.
+func (m *MockModelInterface) ListBackgroundDdlProgresses(ctx context.Context) ([]*querier.BackgroundDdlProgress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBackgroundDdlProgresses", ctx)
+	ret0, _ := ret[0].([]*querier.BackgroundDdlProgress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBackgroundDdlProgresses indicates an expected call of ListBackgroundDdlProgresses.
+func (mr *MockModelInterfaceMockRecorder) ListBackgroundDdlProgresses(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBackgroundDdlProgresses", reflect.TypeOf((*MockModelInterface)(nil).ListBackgroundDdlProgresses), ctx)
+}
+
+// ListBackgroundDdlProgressesByJob mocks base method.
+func (m *MockModelInterface) ListBackgroundDdlProgressesByJob(ctx context.Context, jobID uuid.UUID) ([]*querier.BackgroundDdlProgress, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBackgroundDdlProgressesByJob", ctx, jobID)
+	ret0, _ := ret[0].([]*querier.BackgroundDdlProgress)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListBackgroundDdlProgressesByJob indicates an expected call of ListBackgroundDdlProgressesByJob.
+func (mr *MockModelInterfaceMockRecorder) ListBackgroundDdlProgressesByJob(ctx, jobID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBackgroundDdlProgressesByJob", reflect.TypeOf((*MockModelInterface)(nil).ListBackgroundDdlProgressesByJob), ctx, jobID)
+}
+
 // ListClusters mocks base method.
 func (m *MockModelInterface) ListClusters(ctx context.Context) ([]*querier.Cluster, error) {
 	m.ctrl.T.Helper()
@@ -290,6 +408,132 @@ func (mr *MockModelInterfaceMockRecorder) ListNotebooks(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListNotebooks", reflect.TypeOf((*MockModelInterface)(nil).ListNotebooks), ctx)
 }
 
+// MarkBackgroundDdlJobCancelRequested mocks base method.
+func (m *MockModelInterface) MarkBackgroundDdlJobCancelRequested(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBackgroundDdlJobCancelRequested", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBackgroundDdlJobCancelRequested indicates an expected call of MarkBackgroundDdlJobCancelRequested.
+func (mr *MockModelInterfaceMockRecorder) MarkBackgroundDdlJobCancelRequested(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBackgroundDdlJobCancelRequested", reflect.TypeOf((*MockModelInterface)(nil).MarkBackgroundDdlJobCancelRequested), ctx, id)
+}
+
+// MarkBackgroundDdlJobCancelled mocks base method.
+func (m *MockModelInterface) MarkBackgroundDdlJobCancelled(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBackgroundDdlJobCancelled", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBackgroundDdlJobCancelled indicates an expected call of MarkBackgroundDdlJobCancelled.
+func (mr *MockModelInterfaceMockRecorder) MarkBackgroundDdlJobCancelled(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBackgroundDdlJobCancelled", reflect.TypeOf((*MockModelInterface)(nil).MarkBackgroundDdlJobCancelled), ctx, id)
+}
+
+// MarkBackgroundDdlJobFailed mocks base method.
+func (m *MockModelInterface) MarkBackgroundDdlJobFailed(ctx context.Context, arg querier.MarkBackgroundDdlJobFailedParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBackgroundDdlJobFailed", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBackgroundDdlJobFailed indicates an expected call of MarkBackgroundDdlJobFailed.
+func (mr *MockModelInterfaceMockRecorder) MarkBackgroundDdlJobFailed(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBackgroundDdlJobFailed", reflect.TypeOf((*MockModelInterface)(nil).MarkBackgroundDdlJobFailed), ctx, arg)
+}
+
+// MarkBackgroundDdlJobFinished mocks base method.
+func (m *MockModelInterface) MarkBackgroundDdlJobFinished(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBackgroundDdlJobFinished", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBackgroundDdlJobFinished indicates an expected call of MarkBackgroundDdlJobFinished.
+func (mr *MockModelInterfaceMockRecorder) MarkBackgroundDdlJobFinished(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBackgroundDdlJobFinished", reflect.TypeOf((*MockModelInterface)(nil).MarkBackgroundDdlJobFinished), ctx, id)
+}
+
+// MarkBackgroundDdlJobStarted mocks base method.
+func (m *MockModelInterface) MarkBackgroundDdlJobStarted(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBackgroundDdlJobStarted", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBackgroundDdlJobStarted indicates an expected call of MarkBackgroundDdlJobStarted.
+func (mr *MockModelInterfaceMockRecorder) MarkBackgroundDdlJobStarted(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBackgroundDdlJobStarted", reflect.TypeOf((*MockModelInterface)(nil).MarkBackgroundDdlJobStarted), ctx, id)
+}
+
+// MarkBackgroundDdlProgressCancelled mocks base method.
+func (m *MockModelInterface) MarkBackgroundDdlProgressCancelled(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBackgroundDdlProgressCancelled", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBackgroundDdlProgressCancelled indicates an expected call of MarkBackgroundDdlProgressCancelled.
+func (mr *MockModelInterfaceMockRecorder) MarkBackgroundDdlProgressCancelled(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBackgroundDdlProgressCancelled", reflect.TypeOf((*MockModelInterface)(nil).MarkBackgroundDdlProgressCancelled), ctx, id)
+}
+
+// MarkBackgroundDdlProgressFailed mocks base method.
+func (m *MockModelInterface) MarkBackgroundDdlProgressFailed(ctx context.Context, arg querier.MarkBackgroundDdlProgressFailedParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBackgroundDdlProgressFailed", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBackgroundDdlProgressFailed indicates an expected call of MarkBackgroundDdlProgressFailed.
+func (mr *MockModelInterfaceMockRecorder) MarkBackgroundDdlProgressFailed(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBackgroundDdlProgressFailed", reflect.TypeOf((*MockModelInterface)(nil).MarkBackgroundDdlProgressFailed), ctx, arg)
+}
+
+// MarkBackgroundDdlProgressFinished mocks base method.
+func (m *MockModelInterface) MarkBackgroundDdlProgressFinished(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBackgroundDdlProgressFinished", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBackgroundDdlProgressFinished indicates an expected call of MarkBackgroundDdlProgressFinished.
+func (mr *MockModelInterfaceMockRecorder) MarkBackgroundDdlProgressFinished(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBackgroundDdlProgressFinished", reflect.TypeOf((*MockModelInterface)(nil).MarkBackgroundDdlProgressFinished), ctx, id)
+}
+
+// MarkBackgroundDdlProgressStarted mocks base method.
+func (m *MockModelInterface) MarkBackgroundDdlProgressStarted(ctx context.Context, id uuid.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkBackgroundDdlProgressStarted", ctx, id)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkBackgroundDdlProgressStarted indicates an expected call of MarkBackgroundDdlProgressStarted.
+func (mr *MockModelInterfaceMockRecorder) MarkBackgroundDdlProgressStarted(ctx, id any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkBackgroundDdlProgressStarted", reflect.TypeOf((*MockModelInterface)(nil).MarkBackgroundDdlProgressStarted), ctx, id)
+}
+
 // RunTransaction mocks base method.
 func (m *MockModelInterface) RunTransaction(ctx context.Context, f func(ModelInterface) error) error {
 	m.ctrl.T.Helper()
@@ -330,6 +574,34 @@ func (m *MockModelInterface) SpawnWithTx(tx pgx.Tx) ModelInterface {
 func (mr *MockModelInterfaceMockRecorder) SpawnWithTx(tx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SpawnWithTx", reflect.TypeOf((*MockModelInterface)(nil).SpawnWithTx), tx)
+}
+
+// UpdateBackgroundDdlJobTaskID mocks base method.
+func (m *MockModelInterface) UpdateBackgroundDdlJobTaskID(ctx context.Context, arg querier.UpdateBackgroundDdlJobTaskIDParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBackgroundDdlJobTaskID", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateBackgroundDdlJobTaskID indicates an expected call of UpdateBackgroundDdlJobTaskID.
+func (mr *MockModelInterfaceMockRecorder) UpdateBackgroundDdlJobTaskID(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBackgroundDdlJobTaskID", reflect.TypeOf((*MockModelInterface)(nil).UpdateBackgroundDdlJobTaskID), ctx, arg)
+}
+
+// UpdateBackgroundDdlProgressTracking mocks base method.
+func (m *MockModelInterface) UpdateBackgroundDdlProgressTracking(ctx context.Context, arg querier.UpdateBackgroundDdlProgressTrackingParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateBackgroundDdlProgressTracking", ctx, arg)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateBackgroundDdlProgressTracking indicates an expected call of UpdateBackgroundDdlProgressTracking.
+func (mr *MockModelInterfaceMockRecorder) UpdateBackgroundDdlProgressTracking(ctx, arg any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateBackgroundDdlProgressTracking", reflect.TypeOf((*MockModelInterface)(nil).UpdateBackgroundDdlProgressTracking), ctx, arg)
 }
 
 // UpdateCluster mocks base method.

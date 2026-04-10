@@ -136,6 +136,47 @@ paths:
                 $ref: '#/components/schemas/SqlExecutionResult'
       security: []
 
+  /background-ddls:
+    get:
+      summary: List background DDL jobs with statement progress
+      operationId: listBackgroundDdls
+      responses:
+        '200':
+          description: Background DDL jobs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackgroundDdlList'
+      security: []
+    post:
+      summary: Create a background DDL job
+      operationId: createBackgroundDdl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBackgroundDdlRequest'
+      responses:
+        '202':
+          description: Background DDL job accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateBackgroundDdlResult'
+      security: []
+
+  /background-ddls/{id}:
+    parameters:
+      - $ref: '#/components/parameters/BackgroundDdlId'
+    delete:
+      summary: Cancel a background DDL job
+      operationId: deleteBackgroundDdl
+      responses:
+        '202':
+          description: Background DDL job cancellation accepted
+      security: []
+
   /notebooks:
     get:
       summary: List notebooks
@@ -284,6 +325,13 @@ components:
       required: true
       schema:
         type: string
+    BackgroundDdlId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
   schemas:
     ConnectClusterRequest:
@@ -519,6 +567,8 @@ components:
       properties:
         statement:
           type: string
+        backgroundDDL:
+          type: boolean
 
     SqlValue:
       type: string
@@ -558,6 +608,195 @@ components:
         error:
           type: string
           description: SQL execution error returned as a normal response payload.
+
+    BackgroundDdlStatus:
+      type: string
+      enum:
+        - pending
+        - running
+        - cancel_requested
+        - cancelled
+        - finished
+        - failed
+
+    BackgroundDdlStatementKind:
+      type: string
+      enum:
+        - SET
+        - TRACKED_DDL
+        - DIRECT
+
+    BackgroundDdlTargetKind:
+      type: string
+      enum:
+        - none
+        - relation
+        - function
+
+    CreateBackgroundDdlRequest:
+      type: object
+      required:
+        - clusterUuid
+        - database
+        - statement
+      properties:
+        clusterUuid:
+          type: string
+          format: uuid
+        database:
+          type: string
+        statement:
+          type: string
+
+    CreateBackgroundDdlResult:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          $ref: '#/components/schemas/BackgroundDdlStatus'
+
+    BackgroundDdlProgress:
+      type: object
+      required:
+        - id
+        - seq
+        - statement
+        - statementKind
+        - status
+        - targetKind
+        - rwJobIds
+      properties:
+        id:
+          type: string
+          format: uuid
+        seq:
+          type: integer
+          format: int32
+        statement:
+          type: string
+        statementKind:
+          $ref: '#/components/schemas/BackgroundDdlStatementKind'
+        status:
+          $ref: '#/components/schemas/BackgroundDdlStatus'
+        targetKind:
+          $ref: '#/components/schemas/BackgroundDdlTargetKind'
+        targetType:
+          type: string
+          nullable: true
+        targetSchema:
+          type: string
+          nullable: true
+        targetName:
+          type: string
+          nullable: true
+        targetIdentity:
+          type: string
+          nullable: true
+        rwJobIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        lastProgress:
+          type: number
+          format: double
+          nullable: true
+        lastProgressTrackedAt:
+          type: string
+          format: date-time
+          nullable: true
+        estimatedFinishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+
+    BackgroundDdlJob:
+      type: object
+      required:
+        - id
+        - clusterUuid
+        - database
+        - statement
+        - status
+        - createdAt
+        - progresses
+      properties:
+        id:
+          type: string
+          format: uuid
+        clusterUuid:
+          type: string
+          format: uuid
+        database:
+          type: string
+        statement:
+          type: string
+        status:
+          $ref: '#/components/schemas/BackgroundDdlStatus'
+        createdAt:
+          type: string
+          format: date-time
+        startedAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancelRequestedAt:
+          type: string
+          format: date-time
+          nullable: true
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+        finishedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failedAt:
+          type: string
+          format: date-time
+          nullable: true
+        failureReason:
+          type: string
+          nullable: true
+        progresses:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackgroundDdlProgress'
+
+    BackgroundDdlList:
+      type: object
+      required:
+        - jobs
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackgroundDdlJob'
 
     NotebookSummary:
       type: object

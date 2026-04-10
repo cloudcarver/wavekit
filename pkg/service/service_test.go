@@ -10,15 +10,20 @@ import (
 	"github.com/cloudcarver/waitkit/pkg/risingwave"
 	"github.com/cloudcarver/waitkit/pkg/zgen/apigen"
 	"github.com/cloudcarver/waitkit/pkg/zgen/querier"
+	backgroundddlparams "github.com/cloudcarver/waitkit/pkg/zgen/schemas/background_ddl"
+	"github.com/cloudcarver/waitkit/pkg/zgen/taskgen"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
 )
 
 type stubRisingWaveClient struct {
-	validateCluster func(ctx context.Context, cfg risingwave.ClusterConfig) (*risingwave.ConnectionStatus, error)
-	listDatabases   func(ctx context.Context, cfg risingwave.ClusterConfig) ([]string, error)
-	listRelations   func(ctx context.Context, cfg risingwave.ClusterConfig, database string) ([]risingwave.RelationCategory, error)
-	executeSQL      func(ctx context.Context, cfg risingwave.ClusterConfig, database, statement string) (*risingwave.SQLResult, error)
+	validateCluster               func(ctx context.Context, cfg risingwave.ClusterConfig) (*risingwave.ConnectionStatus, error)
+	listDatabases                 func(ctx context.Context, cfg risingwave.ClusterConfig) ([]string, error)
+	listRelations                 func(ctx context.Context, cfg risingwave.ClusterConfig, database string) ([]risingwave.RelationCategory, error)
+	executeSQL                    func(ctx context.Context, cfg risingwave.ClusterConfig, database, statement string) (*risingwave.SQLResult, error)
+	findRelation                  func(ctx context.Context, cfg risingwave.ClusterConfig, database, schema, relationName, relationType string) (*risingwave.Relation, error)
+	listBackgroundJobsByStatement func(ctx context.Context, cfg risingwave.ClusterConfig, database, statement string) ([]risingwave.BackgroundJobProgress, error)
+	cancelJobs                    func(ctx context.Context, cfg risingwave.ClusterConfig, database string, jobIDs []int64) error
 }
 
 func ptr(value string) *string {
@@ -51,6 +56,27 @@ func (s stubRisingWaveClient) ExecuteSQL(ctx context.Context, cfg risingwave.Clu
 		return nil, nil
 	}
 	return s.executeSQL(ctx, cfg, database, statement)
+}
+
+func (s stubRisingWaveClient) FindRelation(ctx context.Context, cfg risingwave.ClusterConfig, database, schema, relationName, relationType string) (*risingwave.Relation, error) {
+	if s.findRelation == nil {
+		return nil, nil
+	}
+	return s.findRelation(ctx, cfg, database, schema, relationName, relationType)
+}
+
+func (s stubRisingWaveClient) ListBackgroundJobsByStatement(ctx context.Context, cfg risingwave.ClusterConfig, database, statement string) ([]risingwave.BackgroundJobProgress, error) {
+	if s.listBackgroundJobsByStatement == nil {
+		return nil, nil
+	}
+	return s.listBackgroundJobsByStatement(ctx, cfg, database, statement)
+}
+
+func (s stubRisingWaveClient) CancelJobs(ctx context.Context, cfg risingwave.ClusterConfig, database string, jobIDs []int64) error {
+	if s.cancelJobs == nil {
+		return nil
+	}
+	return s.cancelJobs(ctx, cfg, database, jobIDs)
 }
 
 func TestConnectClusterSkipsValidation(t *testing.T) {
@@ -359,6 +385,40 @@ func TestExecuteClusterSQLInjectsLimitForSelect(t *testing.T) {
 	}
 }
 
+func TestExecuteClusterSQLPrefixesBackgroundDDL(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockModel := model.NewMockModelInterface(ctrl)
+	clusterID := uuid.New()
+	backgroundDDL := true
+	mockModel.EXPECT().GetCluster(gomock.Any(), clusterID).Return(&querier.Cluster{
+		ClusterUuid:         clusterID,
+		ClusterName:         "dev",
+		SqlConnectionString: "postgres://localhost:4566/dev",
+		MetaNodeGrpcUrl:     "",
+		MetaNodeHttpUrl:     "",
+	}, nil)
+
+	svc := NewService(mockModel, stubRisingWaveClient{
+		executeSQL: func(ctx context.Context, cfg risingwave.ClusterConfig, database, statement string) (*risingwave.SQLResult, error) {
+			expected := "SET BACKGROUND_DDL=true;\nSELECT * FROM users LIMIT 100"
+			if statement != expected {
+				t.Fatalf("unexpected statement: %q", statement)
+			}
+			return &risingwave.SQLResult{}, nil
+		},
+	})
+
+	_, err := svc.ExecuteClusterSQL(context.Background(), clusterID, "dev", apigen.ExecuteSqlRequest{
+		Statement:     "select * from users",
+		BackgroundDDL: &backgroundDDL,
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}
+
 func TestExecuteClusterSQLReturnsEmptyArraysForCommandWithoutRows(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -431,6 +491,115 @@ func TestExecuteClusterSQLReturnsExecutionErrorInResponse(t *testing.T) {
 	}
 	if len(result.Columns) != 0 || len(result.Rows) != 0 || result.CommandTag != "" || result.RowsAffected != 0 {
 		t.Fatalf("expected empty result payload on SQL error, got %#v", result)
+	}
+}
+
+func TestCreateBackgroundDDLStoresPlansAndEnqueuesWatcher(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockModel := model.NewMockModelInterfaceWithTransaction(ctrl)
+	mockTaskRunner := taskgen.NewMockTaskRunner(ctrl)
+	clusterID := uuid.New()
+	var createdJobID uuid.UUID
+
+	gomock.InOrder(
+		mockModel.EXPECT().GetCluster(gomock.Any(), clusterID).Return(&querier.Cluster{ClusterUuid: clusterID, ClusterName: "dev", SqlConnectionString: "postgres://localhost:4566/dev"}, nil),
+		mockModel.EXPECT().CreateBackgroundDdlJob(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, arg querier.CreateBackgroundDdlJobParams) (*querier.BackgroundDdlJob, error) {
+			createdJobID = arg.ID
+			return &querier.BackgroundDdlJob{ID: arg.ID, ClusterUuid: arg.ClusterUuid, DatabaseName: arg.DatabaseName, Statement: arg.Statement, CreatedAt: time.Now().UTC()}, nil
+		}),
+		mockModel.EXPECT().CreateBackgroundDdlProgress(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, arg querier.CreateBackgroundDdlProgressParams) error {
+			if arg.Seq != 0 || arg.StatementKind != "SET" || arg.TargetKind != "none" {
+				t.Fatalf("unexpected first progress: %#v", arg)
+			}
+			return nil
+		}),
+		mockModel.EXPECT().CreateBackgroundDdlProgress(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, arg querier.CreateBackgroundDdlProgressParams) error {
+			if arg.Seq != 1 || arg.StatementKind != "TRACKED_DDL" || arg.TargetKind != "relation" {
+				t.Fatalf("unexpected second progress: %#v", arg)
+			}
+			if arg.TargetType == nil || *arg.TargetType != "table" || arg.TargetSchema == nil || *arg.TargetSchema != "app" || arg.TargetName == nil || *arg.TargetName != "users" {
+				t.Fatalf("unexpected tracked relation target: %#v", arg)
+			}
+			if arg.ExpectRelationExists == nil || !*arg.ExpectRelationExists {
+				t.Fatalf("expected tracked create to require relation existence, got %#v", arg.ExpectRelationExists)
+			}
+			return nil
+		}),
+		mockModel.EXPECT().CreateBackgroundDdlProgress(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, arg querier.CreateBackgroundDdlProgressParams) error {
+			if arg.Seq != 2 || arg.StatementKind != "DIRECT" || arg.TargetKind != "function" {
+				t.Fatalf("unexpected third progress: %#v", arg)
+			}
+			if arg.TargetSchema == nil || *arg.TargetSchema != "app" || arg.TargetName == nil || *arg.TargetName != "touch_users" {
+				t.Fatalf("unexpected function target: %#v", arg)
+			}
+			return nil
+		}),
+	)
+	mockTaskRunner.EXPECT().RunBackgroundDDLWatcherWithTx(gomock.Any(), nil, gomock.AssignableToTypeOf(&backgroundddlparams.BackgroundDDLWatcherParameters{}), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, tx any, params *backgroundddlparams.BackgroundDDLWatcherParameters, overrides ...any) (int32, error) {
+			if params.BackgroundDdlJobId != createdJobID {
+				t.Fatalf("unexpected watcher job id: %s", params.BackgroundDdlJobId)
+			}
+			return int32(42), nil
+		},
+	)
+	// Work around gomock exact struct matching with generated UUID/task pointer.
+	mockModel.EXPECT().UpdateBackgroundDdlJobTaskID(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, arg querier.UpdateBackgroundDdlJobTaskIDParams) error {
+		if arg.ID != createdJobID || arg.TaskID == nil || *arg.TaskID != 42 {
+			t.Fatalf("unexpected task update params: %#v", arg)
+		}
+		return nil
+	})
+
+	svc := NewServiceWithTaskRunner(mockModel, stubRisingWaveClient{}, mockTaskRunner)
+	result, err := svc.CreateBackgroundDDL(context.Background(), apigen.CreateBackgroundDdlRequest{
+		ClusterUuid: clusterID,
+		Database:    "dev",
+		Statement:   "SET search_path TO app, public; CREATE TABLE users (id int); CREATE FUNCTION touch_users() RETURNS void AS $$ BEGIN PERFORM 1; END; $$ LANGUAGE plpgsql;",
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result.Status != apigen.BackgroundDdlStatusPending || result.Id != createdJobID {
+		t.Fatalf("unexpected create result: %#v", result)
+	}
+}
+
+func TestDeleteBackgroundDDLCancelsRunningJobs(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockModel := model.NewMockModelInterfaceWithTransaction(ctrl)
+	jobID := uuid.New()
+	clusterID := uuid.New()
+	startedAt := time.Now().UTC()
+	mockModel.EXPECT().GetBackgroundDdlJob(gomock.Any(), jobID).Return(&querier.BackgroundDdlJob{ID: jobID, ClusterUuid: clusterID, DatabaseName: "dev", Statement: "create table users (id int)", CreatedAt: startedAt}, nil)
+	mockModel.EXPECT().ListBackgroundDdlProgressesByJob(gomock.Any(), jobID).Return([]*querier.BackgroundDdlProgress{
+		{ID: uuid.New(), JobID: jobID, Seq: 0, Statement: "create table users (id int)", StatementKind: "TRACKED_DDL", StartedAt: &startedAt, RwJobIds: []int64{11, 12}},
+		{ID: uuid.New(), JobID: jobID, Seq: 1, Statement: "create function f() returns void language sql as $$ select 1 $$", StatementKind: "DIRECT"},
+	}, nil)
+	mockModel.EXPECT().MarkBackgroundDdlJobCancelRequested(gomock.Any(), jobID).Return(nil)
+	mockModel.EXPECT().CancelPendingBackgroundDdlProgresses(gomock.Any(), jobID).Return(nil)
+	mockModel.EXPECT().GetCluster(gomock.Any(), clusterID).Return(&querier.Cluster{ClusterUuid: clusterID, ClusterName: "dev", SqlConnectionString: "postgres://localhost:4566/dev"}, nil)
+
+	cancelled := false
+	svc := NewServiceWithTaskRunner(mockModel, stubRisingWaveClient{
+		cancelJobs: func(ctx context.Context, cfg risingwave.ClusterConfig, database string, jobIDs []int64) error {
+			cancelled = true
+			if database != "dev" || len(jobIDs) != 2 || jobIDs[0] != 11 || jobIDs[1] != 12 {
+				t.Fatalf("unexpected cancel jobs request: database=%s jobIDs=%v", database, jobIDs)
+			}
+			return nil
+		},
+	}, nil)
+
+	if err := svc.DeleteBackgroundDDL(context.Background(), jobID); err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if !cancelled {
+		t.Fatal("expected running jobs to be cancelled")
 	}
 }
 

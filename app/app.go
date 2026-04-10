@@ -7,6 +7,7 @@ import (
 
 	anclax_app "github.com/cloudcarver/anclax/pkg/app"
 	anclax_config "github.com/cloudcarver/anclax/pkg/config"
+	"github.com/cloudcarver/anclax/pkg/taskcore/worker"
 	anclax_wire "github.com/cloudcarver/anclax/wire"
 	"github.com/gofiber/fiber/v3"
 )
@@ -45,16 +46,21 @@ func (a *App) Close() {
 type Plugin struct {
 	serverInterface apigen.ServerInterface
 	validator       apigen.Validator
+	taskHandler     worker.TaskHandler
 }
 
-func NewPlugin(serverInterface apigen.ServerInterface, validator apigen.Validator) anclax_app.Plugin {
+func NewPlugin(serverInterface apigen.ServerInterface, validator apigen.Validator, taskHandler worker.TaskHandler) anclax_app.Plugin {
 	return &Plugin{
 		serverInterface: serverInterface,
 		validator:       validator,
+		taskHandler:     taskHandler,
 	}
 }
 
 func (p *Plugin) PlugTo(anclaxApp *anclax_app.Application) error {
+	if p.taskHandler != nil {
+		anclaxApp.GetWorker().RegisterTaskHandler(p.taskHandler)
+	}
 	p.plugToFiberApp(anclaxApp.GetServer().GetApp())
 	return nil
 }

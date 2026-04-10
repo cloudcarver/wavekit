@@ -16,9 +16,11 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/cloudcarver/waitkit/pkg/backgroundddl"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -72,11 +74,21 @@ type SQLResult struct {
 	RowsAffected int64
 }
 
+type BackgroundJobProgress struct {
+	Source    string
+	JobID     int64
+	Statement string
+	Progress  *float64
+}
+
 type Client interface {
 	ValidateCluster(ctx context.Context, cfg ClusterConfig) (*ConnectionStatus, error)
 	ListDatabases(ctx context.Context, cfg ClusterConfig) ([]string, error)
 	ListRelations(ctx context.Context, cfg ClusterConfig, database string) ([]RelationCategory, error)
 	ExecuteSQL(ctx context.Context, cfg ClusterConfig, database, statement string) (*SQLResult, error)
+	FindRelation(ctx context.Context, cfg ClusterConfig, database, schema, relationName, relationType string) (*Relation, error)
+	ListBackgroundJobsByStatement(ctx context.Context, cfg ClusterConfig, database, statement string) ([]BackgroundJobProgress, error)
+	CancelJobs(ctx context.Context, cfg ClusterConfig, database string, jobIDs []int64) error
 }
 
 type RWClient struct {
@@ -211,6 +223,62 @@ func (c *RWClient) ExecuteSQL(ctx context.Context, cfg ClusterConfig, database, 
 	result.CommandTag = rows.CommandTag().String()
 	result.RowsAffected = rows.CommandTag().RowsAffected()
 	return result, nil
+}
+
+func (c *RWClient) FindRelation(ctx context.Context, cfg ClusterConfig, database, schema, relationName, relationType string) (*Relation, error) {
+	relations, err := c.ListRelations(ctx, cfg, database)
+	if err != nil {
+		return nil, err
+	}
+	for _, category := range relations {
+		for _, relationSchema := range category.Schemas {
+			for _, relation := range relationSchema.Relations {
+				if relation.SchemaName != schema || relation.RelationName != relationName {
+					continue
+				}
+				if relationType != "" && relation.RelationType != relationType {
+					continue
+				}
+				relationCopy := relation
+				return &relationCopy, nil
+			}
+		}
+	}
+	return nil, nil
+}
+
+func (c *RWClient) ListBackgroundJobsByStatement(ctx context.Context, cfg ClusterConfig, database, statement string) ([]BackgroundJobProgress, error) {
+	target := backgroundddl.NormalizeStatement(statement)
+	jobs := make([]BackgroundJobProgress, 0)
+	for _, sourceStatement := range []struct {
+		source    string
+		statement string
+	}{
+		{source: "rw_ddl_progress", statement: "SELECT * FROM rw_ddl_progress LIMIT 100"},
+		{source: "rw_cdc_progress", statement: "SELECT * FROM rw_cdc_progress LIMIT 100"},
+	} {
+		result, err := c.ExecuteSQL(ctx, cfg, database, sourceStatement.statement)
+		if err != nil {
+			if isMissingRelationError(err) {
+				continue
+			}
+			return nil, err
+		}
+		jobs = append(jobs, extractBackgroundJobs(sourceStatement.source, target, result)...)
+	}
+	return jobs, nil
+}
+
+func (c *RWClient) CancelJobs(ctx context.Context, cfg ClusterConfig, database string, jobIDs []int64) error {
+	if len(jobIDs) == 0 {
+		return nil
+	}
+	parts := make([]string, 0, len(jobIDs))
+	for _, jobID := range jobIDs {
+		parts = append(parts, strconv.FormatInt(jobID, 10))
+	}
+	_, err := c.ExecuteSQL(ctx, cfg, database, fmt.Sprintf("CANCEL JOBS %s", strings.Join(parts, ", ")))
+	return err
 }
 
 func connect(ctx context.Context, dsn string, database string) (*pgx.Conn, error) {
@@ -636,6 +704,77 @@ func normalizeRelationType(relationType string) string {
 	default:
 		return ""
 	}
+}
+
+func extractBackgroundJobs(source string, targetStatement string, result *SQLResult) []BackgroundJobProgress {
+	if result == nil {
+		return nil
+	}
+	statementIdx := findColumnIndex(result.Columns, "statement")
+	if statementIdx < 0 {
+		return nil
+	}
+	jobIDIdx := findColumnIndex(result.Columns, "job_id", "id")
+	progressIdx := findColumnIndex(result.Columns, "progress")
+
+	jobs := make([]BackgroundJobProgress, 0)
+	for _, row := range result.Rows {
+		if statementIdx >= len(row) {
+			continue
+		}
+		statement := row[statementIdx]
+		if backgroundddl.NormalizeStatement(statement) != targetStatement {
+			continue
+		}
+		job := BackgroundJobProgress{Source: source, Statement: statement}
+		if jobIDIdx >= 0 && jobIDIdx < len(row) {
+			if jobID, err := strconv.ParseInt(strings.TrimSpace(row[jobIDIdx]), 10, 64); err == nil {
+				job.JobID = jobID
+			}
+		}
+		if progressIdx >= 0 && progressIdx < len(row) {
+			if progress, ok := parseProgressValue(row[progressIdx]); ok {
+				job.Progress = &progress
+			}
+		}
+		jobs = append(jobs, job)
+	}
+	return jobs
+}
+
+func findColumnIndex(columns []string, names ...string) int {
+	for idx, column := range columns {
+		normalized := strings.ToLower(strings.TrimSpace(column))
+		for _, name := range names {
+			if normalized == strings.ToLower(name) {
+				return idx
+			}
+		}
+	}
+	return -1
+}
+
+func parseProgressValue(value string) (float64, bool) {
+	trimmed := strings.TrimSpace(strings.TrimSuffix(value, "%"))
+	if trimmed == "" || strings.EqualFold(trimmed, "null") {
+		return 0, false
+	}
+	progress, err := strconv.ParseFloat(trimmed, 64)
+	if err != nil {
+		return 0, false
+	}
+	if progress <= 1 {
+		progress = progress * 100
+	}
+	return progress, true
+}
+
+func isMissingRelationError(err error) bool {
+	if err == nil {
+		return false
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "does not exist") || strings.Contains(message, "unknown table")
 }
 
 func valueToString(value any) string {

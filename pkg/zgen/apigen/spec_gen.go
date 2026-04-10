@@ -17,11 +17,80 @@ import (
 	"time"
 )
 
+// Defines values for BackgroundDdlStatementKind.
+const (
+	BackgroundDdlStatementKindSET        BackgroundDdlStatementKind = "SET"
+	BackgroundDdlStatementKindTRACKEDDDL BackgroundDdlStatementKind = "TRACKED_DDL"
+	BackgroundDdlStatementKindDIRECT     BackgroundDdlStatementKind = "DIRECT"
+)
+
+// Defines values for BackgroundDdlStatus.
+const (
+	BackgroundDdlStatusPending         BackgroundDdlStatus = "pending"
+	BackgroundDdlStatusRunning         BackgroundDdlStatus = "running"
+	BackgroundDdlStatusCancelRequested BackgroundDdlStatus = "cancel_requested"
+	BackgroundDdlStatusCancelled       BackgroundDdlStatus = "cancelled"
+	BackgroundDdlStatusFinished        BackgroundDdlStatus = "finished"
+	BackgroundDdlStatusFailed          BackgroundDdlStatus = "failed"
+)
+
+// Defines values for BackgroundDdlTargetKind.
+const (
+	BackgroundDdlTargetKindNone     BackgroundDdlTargetKind = "none"
+	BackgroundDdlTargetKindRelation BackgroundDdlTargetKind = "relation"
+	BackgroundDdlTargetKindFunction BackgroundDdlTargetKind = "function"
+)
+
 // Defines values for NotebookCellType.
 const (
 	NotebookCellTypeSQL   NotebookCellType = "SQL"
 	NotebookCellTypeShell NotebookCellType = "Shell"
 )
+
+// BackgroundDdlJob defines model for BackgroundDdlJob.
+type BackgroundDdlJob struct {
+	CancelRequestedAt *time.Time              `json:"cancelRequestedAt,omitempty"`
+	CancelledAt       *time.Time              `json:"cancelledAt,omitempty"`
+	ClusterUuid       uuid.UUID               `json:"clusterUuid"`
+	CreatedAt         time.Time               `json:"createdAt"`
+	Database          string                  `json:"database"`
+	FailedAt          *time.Time              `json:"failedAt,omitempty"`
+	FailureReason     *string                 `json:"failureReason,omitempty"`
+	FinishedAt        *time.Time              `json:"finishedAt,omitempty"`
+	Id                uuid.UUID               `json:"id"`
+	Progresses        []BackgroundDdlProgress `json:"progresses"`
+	StartedAt         *time.Time              `json:"startedAt,omitempty"`
+	Statement         string                  `json:"statement"`
+	Status            BackgroundDdlStatus     `json:"status"`
+}
+
+// BackgroundDdlList defines model for BackgroundDdlList.
+type BackgroundDdlList struct {
+	Jobs []BackgroundDdlJob `json:"jobs"`
+}
+
+// BackgroundDdlProgress defines model for BackgroundDdlProgress.
+type BackgroundDdlProgress struct {
+	CancelledAt           *time.Time                 `json:"cancelledAt,omitempty"`
+	EstimatedFinishedAt   *time.Time                 `json:"estimatedFinishedAt,omitempty"`
+	FailedAt              *time.Time                 `json:"failedAt,omitempty"`
+	FailureReason         *string                    `json:"failureReason,omitempty"`
+	FinishedAt            *time.Time                 `json:"finishedAt,omitempty"`
+	Id                    uuid.UUID                  `json:"id"`
+	LastProgress          *float64                   `json:"lastProgress,omitempty"`
+	LastProgressTrackedAt *time.Time                 `json:"lastProgressTrackedAt,omitempty"`
+	RwJobIds              []int64                    `json:"rwJobIds"`
+	Seq                   int32                      `json:"seq"`
+	StartedAt             *time.Time                 `json:"startedAt,omitempty"`
+	Statement             string                     `json:"statement"`
+	StatementKind         BackgroundDdlStatementKind `json:"statementKind"`
+	Status                BackgroundDdlStatus        `json:"status"`
+	TargetIdentity        *string                    `json:"targetIdentity,omitempty"`
+	TargetKind            BackgroundDdlTargetKind    `json:"targetKind"`
+	TargetName            *string                    `json:"targetName,omitempty"`
+	TargetSchema          *string                    `json:"targetSchema,omitempty"`
+	TargetType            *string                    `json:"targetType,omitempty"`
+}
 
 // BackgroundProgressCluster defines model for BackgroundProgressCluster.
 type BackgroundProgressCluster struct {
@@ -88,6 +157,19 @@ type ConnectionStatus struct {
 	Sql       EndpointCheck `json:"sql"`
 }
 
+// CreateBackgroundDdlRequest defines model for CreateBackgroundDdlRequest.
+type CreateBackgroundDdlRequest struct {
+	ClusterUuid uuid.UUID `json:"clusterUuid"`
+	Database    string    `json:"database"`
+	Statement   string    `json:"statement"`
+}
+
+// CreateBackgroundDdlResult defines model for CreateBackgroundDdlResult.
+type CreateBackgroundDdlResult struct {
+	Id     uuid.UUID           `json:"id"`
+	Status BackgroundDdlStatus `json:"status"`
+}
+
 // CreateNotebookCellRequest defines model for CreateNotebookCellRequest.
 type CreateNotebookCellRequest struct {
 	BackgroundDdl *bool            `json:"backgroundDdl,omitempty"`
@@ -125,7 +207,8 @@ type EndpointCheck struct {
 
 // ExecuteSqlRequest defines model for ExecuteSqlRequest.
 type ExecuteSqlRequest struct {
-	Statement string `json:"statement"`
+	BackgroundDDL *bool  `json:"backgroundDDL,omitempty"`
+	Statement     string `json:"statement"`
 }
 
 // Notebook defines model for Notebook.
@@ -226,6 +309,15 @@ type UpdateNotebookCellRequest struct {
 	Database      *string          `json:"database,omitempty"`
 }
 
+// BackgroundDdlStatementKind defines enum values
+type BackgroundDdlStatementKind string
+
+// BackgroundDdlStatus defines enum values
+type BackgroundDdlStatus string
+
+// BackgroundDdlTargetKind defines enum values
+type BackgroundDdlTargetKind string
+
 // NotebookCellType defines enum values
 type NotebookCellType string
 
@@ -234,6 +326,9 @@ type CreateNotebookJSONRequestBody = CreateNotebookRequest
 
 // ConnectClusterJSONRequestBody defines body for ConnectCluster for application/json ContentType.
 type ConnectClusterJSONRequestBody = ConnectClusterRequest
+
+// CreateBackgroundDdlJSONRequestBody defines body for CreateBackgroundDdl for application/json ContentType.
+type CreateBackgroundDdlJSONRequestBody = CreateBackgroundDdlRequest
 
 // ReorderNotebookCellsJSONRequestBody defines body for ReorderNotebookCells for application/json ContentType.
 type ReorderNotebookCellsJSONRequestBody = ReorderNotebookCellsRequest
@@ -336,6 +431,14 @@ type ClientInterface interface {
 	// ListClusters request
 	ListClusters(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// ListBackgroundDdls request
+	ListBackgroundDdls(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateBackgroundDdlWithBody request with any body
+	CreateBackgroundDdlWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateBackgroundDdl(ctx context.Context, body CreateBackgroundDdlJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// ReorderNotebookCellsWithBody request with any body
 	ReorderNotebookCellsWithBody(ctx context.Context, notebookUuid uuid.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -362,6 +465,9 @@ type ClientInterface interface {
 
 	// DeleteCluster request
 	DeleteCluster(ctx context.Context, clusterUuid uuid.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteBackgroundDdl request
+	DeleteBackgroundDdl(ctx context.Context, id uuid.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateNotebookCellWithBody request with any body
 	UpdateNotebookCellWithBody(ctx context.Context, notebookUuid uuid.UUID, cellUuid uuid.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -454,6 +560,38 @@ func (c *Client) ListClusters(ctx context.Context, reqEditors ...RequestEditorFn
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+func (c *Client) ListBackgroundDdls(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewListBackgroundDdlsRequest(c.Server)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBackgroundDdlWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateBackgroundDdlRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateBackgroundDdl(ctx context.Context, body CreateBackgroundDdlJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	return c.CreateBackgroundDdlWithBody(ctx, "application/json", bytes.NewReader(bodyBytes), reqEditors...)
 }
 
 func (c *Client) ReorderNotebookCellsWithBody(ctx context.Context, notebookUuid uuid.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -554,6 +692,18 @@ func (c *Client) UpdateCluster(ctx context.Context, clusterUuid uuid.UUID, body 
 
 func (c *Client) DeleteCluster(ctx context.Context, clusterUuid uuid.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewDeleteClusterRequest(c.Server, clusterUuid)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteBackgroundDdl(ctx context.Context, id uuid.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteBackgroundDdlRequest(c.Server, id)
 	if err != nil {
 		return nil, err
 	}
@@ -768,6 +918,64 @@ func NewListClustersRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
+// NewListBackgroundDdlsRequest generates requests for ListBackgroundDdls
+func NewListBackgroundDdlsRequest(server string) (*http.Request, error) {
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/background-ddls")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return req, nil
+}
+
+// NewCreateBackgroundDdlRequestWithBody generates requests for CreateBackgroundDdl with any body
+func NewCreateBackgroundDdlRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/background-ddls")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", contentType)
+	return req, nil
+}
+
+// NewCreateBackgroundDdlRequest generates requests for CreateBackgroundDdl
+func NewCreateBackgroundDdlRequest(server string, body CreateBackgroundDdlJSONRequestBody) (*http.Request, error) {
+	bodyBytes, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	return NewCreateBackgroundDdlRequestWithBody(server, "application/json", bytes.NewReader(bodyBytes))
+}
+
 // NewReorderNotebookCellsRequestWithBody generates requests for ReorderNotebookCells with any body
 func NewReorderNotebookCellsRequestWithBody(server string, notebookUuid uuid.UUID, contentType string, body io.Reader) (*http.Request, error) {
 	serverURL, err := url.Parse(server)
@@ -966,6 +1174,30 @@ func NewDeleteClusterRequest(server string, clusterUuid uuid.UUID) (*http.Reques
 	return req, nil
 }
 
+// NewDeleteBackgroundDdlRequest generates requests for DeleteBackgroundDdl
+func NewDeleteBackgroundDdlRequest(server string, id uuid.UUID) (*http.Request, error) {
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/background-ddls/%v", id)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("DELETE", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return req, nil
+}
+
 // NewUpdateNotebookCellRequestWithBody generates requests for UpdateNotebookCell with any body
 func NewUpdateNotebookCellRequestWithBody(server string, notebookUuid uuid.UUID, cellUuid uuid.UUID, contentType string, body io.Reader) (*http.Request, error) {
 	serverURL, err := url.Parse(server)
@@ -1144,6 +1376,14 @@ type ClientWithResponsesInterface interface {
 	// ListClustersWithResponse request
 	ListClustersWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListClustersResponse, error)
 
+	// ListBackgroundDdlsWithResponse request
+	ListBackgroundDdlsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListBackgroundDdlsResponse, error)
+
+	// CreateBackgroundDdlWithBodyWithResponse request with any body
+	CreateBackgroundDdlWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBackgroundDdlResponse, error)
+
+	CreateBackgroundDdlWithResponse(ctx context.Context, body CreateBackgroundDdlJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBackgroundDdlResponse, error)
+
 	// ReorderNotebookCellsWithBodyWithResponse request with any body
 	ReorderNotebookCellsWithBodyWithResponse(ctx context.Context, notebookUuid uuid.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReorderNotebookCellsResponse, error)
 
@@ -1170,6 +1410,9 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteClusterWithResponse request
 	DeleteClusterWithResponse(ctx context.Context, clusterUuid uuid.UUID, reqEditors ...RequestEditorFn) (*DeleteClusterResponse, error)
+
+	// DeleteBackgroundDdlWithResponse request
+	DeleteBackgroundDdlWithResponse(ctx context.Context, id uuid.UUID, reqEditors ...RequestEditorFn) (*DeleteBackgroundDdlResponse, error)
 
 	// UpdateNotebookCellWithBodyWithResponse request with any body
 	UpdateNotebookCellWithBodyWithResponse(ctx context.Context, notebookUuid uuid.UUID, cellUuid uuid.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateNotebookCellResponse, error)
@@ -1292,6 +1535,50 @@ func (r ListClustersResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r ListClustersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type ListBackgroundDdlsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *BackgroundDdlList
+}
+
+// Status returns HTTPResponse.Status
+func (r ListBackgroundDdlsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r ListBackgroundDdlsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type CreateBackgroundDdlResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON202      *CreateBackgroundDdlResult
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateBackgroundDdlResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateBackgroundDdlResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -1449,6 +1736,27 @@ func (r DeleteClusterResponse) StatusCode() int {
 	return 0
 }
 
+type DeleteBackgroundDdlResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteBackgroundDdlResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteBackgroundDdlResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
 type UpdateNotebookCellResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -1597,6 +1905,32 @@ func (c *ClientWithResponses) ListClustersWithResponse(ctx context.Context, reqE
 	return ParseListClustersResponse(rsp)
 }
 
+// ListBackgroundDdlsWithResponse request returning *ListBackgroundDdlsResponse
+func (c *ClientWithResponses) ListBackgroundDdlsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListBackgroundDdlsResponse, error) {
+	rsp, err := c.ListBackgroundDdls(ctx, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseListBackgroundDdlsResponse(rsp)
+}
+
+// CreateBackgroundDdlWithBodyWithResponse request with arbitrary body returning *CreateBackgroundDdlResponse
+func (c *ClientWithResponses) CreateBackgroundDdlWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateBackgroundDdlResponse, error) {
+	rsp, err := c.CreateBackgroundDdlWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBackgroundDdlResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateBackgroundDdlWithResponse(ctx context.Context, body CreateBackgroundDdlJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateBackgroundDdlResponse, error) {
+	rsp, err := c.CreateBackgroundDdl(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateBackgroundDdlResponse(rsp)
+}
+
 // ReorderNotebookCellsWithBodyWithResponse request with arbitrary body returning *ReorderNotebookCellsResponse
 func (c *ClientWithResponses) ReorderNotebookCellsWithBodyWithResponse(ctx context.Context, notebookUuid uuid.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ReorderNotebookCellsResponse, error) {
 	rsp, err := c.ReorderNotebookCellsWithBody(ctx, notebookUuid, contentType, body, reqEditors...)
@@ -1682,6 +2016,15 @@ func (c *ClientWithResponses) DeleteClusterWithResponse(ctx context.Context, clu
 		return nil, err
 	}
 	return ParseDeleteClusterResponse(rsp)
+}
+
+// DeleteBackgroundDdlWithResponse request returning *DeleteBackgroundDdlResponse
+func (c *ClientWithResponses) DeleteBackgroundDdlWithResponse(ctx context.Context, id uuid.UUID, reqEditors ...RequestEditorFn) (*DeleteBackgroundDdlResponse, error) {
+	rsp, err := c.DeleteBackgroundDdl(ctx, id, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteBackgroundDdlResponse(rsp)
 }
 
 // UpdateNotebookCellWithBodyWithResponse request with arbitrary body returning *UpdateNotebookCellResponse
@@ -1846,6 +2189,50 @@ func ParseListClustersResponse(rsp *http.Response) (*ListClustersResponse, error
 	return response, nil
 }
 
+// ParseListBackgroundDdlsResponse parses an HTTP response from a ListBackgroundDdlsWithResponse call
+func ParseListBackgroundDdlsResponse(rsp *http.Response) (*ListBackgroundDdlsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &ListBackgroundDdlsResponse{Body: bodyBytes, HTTPResponse: rsp}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest BackgroundDdlList
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+	}
+
+	return response, nil
+}
+
+// ParseCreateBackgroundDdlResponse parses an HTTP response from a CreateBackgroundDdlWithResponse call
+func ParseCreateBackgroundDdlResponse(rsp *http.Response) (*CreateBackgroundDdlResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateBackgroundDdlResponse{Body: bodyBytes, HTTPResponse: rsp}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 202:
+		var dest CreateBackgroundDdlResult
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON202 = &dest
+	}
+
+	return response, nil
+}
+
 // ParseReorderNotebookCellsResponse parses an HTTP response from a ReorderNotebookCellsWithResponse call
 func ParseReorderNotebookCellsResponse(rsp *http.Response) (*ReorderNotebookCellsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -1973,6 +2360,19 @@ func ParseDeleteClusterResponse(rsp *http.Response) (*DeleteClusterResponse, err
 	return response, nil
 }
 
+// ParseDeleteBackgroundDdlResponse parses an HTTP response from a DeleteBackgroundDdlWithResponse call
+func ParseDeleteBackgroundDdlResponse(rsp *http.Response) (*DeleteBackgroundDdlResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteBackgroundDdlResponse{Body: bodyBytes, HTTPResponse: rsp}
+
+	return response, nil
+}
+
 // ParseUpdateNotebookCellResponse parses an HTTP response from a UpdateNotebookCellWithResponse call
 func ParseUpdateNotebookCellResponse(rsp *http.Response) (*UpdateNotebookCellResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -2069,6 +2469,12 @@ type ServerInterface interface {
 	// List connected clusters
 	// (GET /clusters)
 	ListClusters(c fiber.Ctx) error
+	// List background DDL jobs with statement progress
+	// (GET /background-ddls)
+	ListBackgroundDdls(c fiber.Ctx) error
+	// Create a background DDL job
+	// (POST /background-ddls)
+	CreateBackgroundDdl(c fiber.Ctx) error
 	// Reorder notebook cells
 	// (POST /notebooks/{notebook_uuid}/cells/order)
 	ReorderNotebookCells(c fiber.Ctx, notebookUuid uuid.UUID) error
@@ -2090,6 +2496,9 @@ type ServerInterface interface {
 	// Delete a cluster connection
 	// (DELETE /clusters/{cluster_uuid})
 	DeleteCluster(c fiber.Ctx, clusterUuid uuid.UUID) error
+	// Cancel a background DDL job
+	// (DELETE /background-ddls/{id})
+	DeleteBackgroundDdl(c fiber.Ctx, id uuid.UUID) error
 	// Update notebook cell
 	// (PUT /notebooks/{notebook_uuid}/cells/{cell_uuid})
 	UpdateNotebookCell(c fiber.Ctx, notebookUuid uuid.UUID, cellUuid uuid.UUID) error
@@ -2134,6 +2543,16 @@ func (siw *ServerInterfaceWrapper) ListClusterBackgroundProgress(c fiber.Ctx) er
 // ListClusters operation middleware
 func (siw *ServerInterfaceWrapper) ListClusters(c fiber.Ctx) error {
 	return siw.Handler.ListClusters(c)
+}
+
+// ListBackgroundDdls operation middleware
+func (siw *ServerInterfaceWrapper) ListBackgroundDdls(c fiber.Ctx) error {
+	return siw.Handler.ListBackgroundDdls(c)
+}
+
+// CreateBackgroundDdl operation middleware
+func (siw *ServerInterfaceWrapper) CreateBackgroundDdl(c fiber.Ctx) error {
+	return siw.Handler.CreateBackgroundDdl(c)
 }
 
 // ReorderNotebookCells operation middleware
@@ -2225,6 +2644,19 @@ func (siw *ServerInterfaceWrapper) DeleteCluster(c fiber.Ctx) error {
 	clusterUuid = parsedClusterUuid
 
 	return siw.Handler.DeleteCluster(c, clusterUuid)
+}
+
+// DeleteBackgroundDdl operation middleware
+func (siw *ServerInterfaceWrapper) DeleteBackgroundDdl(c fiber.Ctx) error {
+	var id uuid.UUID
+	idValue := c.Params("id")
+	parsedId, err := uuid.Parse(idValue)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter id: %w", err).Error())
+	}
+	id = parsedId
+
+	return siw.Handler.DeleteBackgroundDdl(c, id)
 }
 
 // UpdateNotebookCell operation middleware
@@ -2330,6 +2762,10 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 
 	router.Get(options.BaseURL+"/clusters", wrapper.ListClusters)
 
+	router.Get(options.BaseURL+"/background-ddls", wrapper.ListBackgroundDdls)
+
+	router.Post(options.BaseURL+"/background-ddls", wrapper.CreateBackgroundDdl)
+
 	router.Post(options.BaseURL+"/notebooks/:notebook_uuid/cells/order", wrapper.ReorderNotebookCells)
 
 	router.Post(options.BaseURL+"/notebooks/:notebook_uuid/cells", wrapper.CreateNotebookCell)
@@ -2343,6 +2779,8 @@ func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, option
 	router.Put(options.BaseURL+"/clusters/:cluster_uuid", wrapper.UpdateCluster)
 
 	router.Delete(options.BaseURL+"/clusters/:cluster_uuid", wrapper.DeleteCluster)
+
+	router.Delete(options.BaseURL+"/background-ddls/:id", wrapper.DeleteBackgroundDdl)
 
 	router.Put(options.BaseURL+"/notebooks/:notebook_uuid/cells/:cell_uuid", wrapper.UpdateNotebookCell)
 

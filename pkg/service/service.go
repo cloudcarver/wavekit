@@ -11,16 +11,18 @@ import (
 	"github.com/cloudcarver/waitkit/pkg/risingwave"
 	"github.com/cloudcarver/waitkit/pkg/zgen/apigen"
 	"github.com/cloudcarver/waitkit/pkg/zgen/querier"
+	"github.com/cloudcarver/waitkit/pkg/zgen/taskgen"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
 var (
-	ErrClusterNotFound      = errors.New("cluster not found")
-	ErrNotebookNotFound     = errors.New("notebook not found")
-	ErrNotebookCellNotFound = errors.New("notebook cell not found")
-	ErrInvalidInput         = errors.New("invalid input")
-	ErrInvalidCellOrder     = errors.New("invalid notebook cell order")
+	ErrClusterNotFound       = errors.New("cluster not found")
+	ErrNotebookNotFound      = errors.New("notebook not found")
+	ErrNotebookCellNotFound  = errors.New("notebook cell not found")
+	ErrBackgroundDdlNotFound = errors.New("background DDL job not found")
+	ErrInvalidInput          = errors.New("invalid input")
+	ErrInvalidCellOrder      = errors.New("invalid notebook cell order")
 )
 
 type ServiceInterface interface {
@@ -32,6 +34,9 @@ type ServiceInterface interface {
 	ListClusterRelations(ctx context.Context, clusterUUID uuid.UUID, database string) (*apigen.ClusterRelationList, error)
 	ExecuteClusterSQL(ctx context.Context, clusterUUID uuid.UUID, database string, req apigen.ExecuteSqlRequest) (*apigen.SqlExecutionResult, error)
 	ListClusterBackgroundProgress(ctx context.Context) (*apigen.BackgroundProgressList, error)
+	CreateBackgroundDDL(ctx context.Context, req apigen.CreateBackgroundDdlRequest) (*apigen.CreateBackgroundDdlResult, error)
+	ListBackgroundDDLs(ctx context.Context) (*apigen.BackgroundDdlList, error)
+	DeleteBackgroundDDL(ctx context.Context, id uuid.UUID) error
 	ListNotebooks(ctx context.Context) (*apigen.NotebookList, error)
 	CreateNotebook(ctx context.Context, req apigen.CreateNotebookRequest) (*apigen.CreateNotebookResult, error)
 	GetNotebook(ctx context.Context, notebookUUID uuid.UUID) (*apigen.Notebook, error)
@@ -45,12 +50,18 @@ type ServiceInterface interface {
 type Service struct {
 	model      model.ModelInterface
 	risingwave risingwave.Client
+	taskRunner taskgen.TaskRunner
 }
 
 func NewService(model model.ModelInterface, risingwaveClient risingwave.Client) ServiceInterface {
+	return NewServiceWithTaskRunner(model, risingwaveClient, nil)
+}
+
+func NewServiceWithTaskRunner(model model.ModelInterface, risingwaveClient risingwave.Client, taskRunner taskgen.TaskRunner) ServiceInterface {
 	return &Service{
 		model:      model,
 		risingwave: risingwaveClient,
+		taskRunner: taskRunner,
 	}
 }
 
@@ -186,6 +197,9 @@ func (s *Service) ExecuteClusterSQL(ctx context.Context, clusterUUID uuid.UUID, 
 		return nil, err
 	}
 	statement := injectSelectLimit(req.Statement)
+	if req.BackgroundDDL != nil && *req.BackgroundDDL {
+		statement = "SET BACKGROUND_DDL=true;\n" + statement
+	}
 	result, err := s.risingwave.ExecuteSQL(ctx, clusterToRWConfig(cluster), database, statement)
 	if err != nil {
 		return sqlExecutionErrorResult(err), nil

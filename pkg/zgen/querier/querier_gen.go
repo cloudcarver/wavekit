@@ -11,21 +11,40 @@ import (
 )
 
 type Querier interface {
+	CancelPendingBackgroundDdlProgresses(ctx context.Context, jobID uuid.UUID) error
+	CreateBackgroundDdlJob(ctx context.Context, arg CreateBackgroundDdlJobParams) (*BackgroundDdlJob, error)
+	CreateBackgroundDdlProgress(ctx context.Context, arg CreateBackgroundDdlProgressParams) error
 	CreateCluster(ctx context.Context, arg CreateClusterParams) (*Cluster, error)
 	CreateNotebook(ctx context.Context, notebookName string) (*Notebook, error)
 	CreateNotebookCell(ctx context.Context, arg CreateNotebookCellParams) (*NotebookCell, error)
 	DeleteCluster(ctx context.Context, clusterUuid uuid.UUID) error
 	DeleteNotebook(ctx context.Context, notebookUuid uuid.UUID) error
 	DeleteNotebookCell(ctx context.Context, arg DeleteNotebookCellParams) error
+	GetBackgroundDdlJob(ctx context.Context, id uuid.UUID) (*BackgroundDdlJob, error)
 	GetCluster(ctx context.Context, clusterUuid uuid.UUID) (*Cluster, error)
 	GetCounter(ctx context.Context) (*Counter, error)
+	GetNextBackgroundDdlProgress(ctx context.Context, jobID uuid.UUID) (*BackgroundDdlProgress, error)
 	GetNextNotebookCellOrder(ctx context.Context, notebookUuid uuid.UUID) (int32, error)
 	GetNotebook(ctx context.Context, notebookUuid uuid.UUID) (*Notebook, error)
 	GetNotebookCell(ctx context.Context, arg GetNotebookCellParams) (*NotebookCell, error)
 	IncrementCounter(ctx context.Context) error
+	ListBackgroundDdlJobs(ctx context.Context) ([]*BackgroundDdlJob, error)
+	ListBackgroundDdlProgresses(ctx context.Context) ([]*BackgroundDdlProgress, error)
+	ListBackgroundDdlProgressesByJob(ctx context.Context, jobID uuid.UUID) ([]*BackgroundDdlProgress, error)
 	ListClusters(ctx context.Context) ([]*Cluster, error)
 	ListNotebookCells(ctx context.Context, notebookUuid uuid.UUID) ([]*NotebookCell, error)
 	ListNotebooks(ctx context.Context) ([]*Notebook, error)
+	MarkBackgroundDdlJobCancelRequested(ctx context.Context, id uuid.UUID) error
+	MarkBackgroundDdlJobCancelled(ctx context.Context, id uuid.UUID) error
+	MarkBackgroundDdlJobFailed(ctx context.Context, arg MarkBackgroundDdlJobFailedParams) error
+	MarkBackgroundDdlJobFinished(ctx context.Context, id uuid.UUID) error
+	MarkBackgroundDdlJobStarted(ctx context.Context, id uuid.UUID) error
+	MarkBackgroundDdlProgressCancelled(ctx context.Context, id uuid.UUID) error
+	MarkBackgroundDdlProgressFailed(ctx context.Context, arg MarkBackgroundDdlProgressFailedParams) error
+	MarkBackgroundDdlProgressFinished(ctx context.Context, id uuid.UUID) error
+	MarkBackgroundDdlProgressStarted(ctx context.Context, id uuid.UUID) error
+	UpdateBackgroundDdlJobTaskID(ctx context.Context, arg UpdateBackgroundDdlJobTaskIDParams) error
+	UpdateBackgroundDdlProgressTracking(ctx context.Context, arg UpdateBackgroundDdlProgressTrackingParams) error
 	UpdateCluster(ctx context.Context, arg UpdateClusterParams) (*Cluster, error)
 	UpdateNotebookCell(ctx context.Context, arg UpdateNotebookCellParams) (*NotebookCell, error)
 	UpdateNotebookCellOrder(ctx context.Context, arg UpdateNotebookCellOrderParams) error

@@ -2,8 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ExecuteSqlRequest = {
+export type CreateBackgroundDdlRequest = {
+    clusterUuid: string;
+    database: string;
     statement: string;
-    backgroundDDL?: boolean;
 };
 

@@ -7,13 +7,13 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "2910:2910"
+      - "1800:1800"
     command:
       - go
       - run
       - ./cmd/main.go
     environment:
-      WAVEKIT_ANCLAX_PORT: "2910"
+      WAVEKIT_ANCLAX_PORT: "1800"
       WAVEKIT_ANCLAX_PG_DSN: postgresql://postgres:postgres@db:5432/postgres?sslmode=disable
     volumes:
       - ./:/app
@@ -37,7 +37,7 @@ services:
       - db-data:/var/lib/postgresql/data
 
   rw-svc:
-    image: risingwavelabs/risingwave:v2.7.2
+    image: risingwavelabs/risingwave:v2.8.1
     ports:
       - 4566:4566
       - 5690:5690

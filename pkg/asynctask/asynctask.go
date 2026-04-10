@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cloudcarver/waitkit/pkg/model"
+	"github.com/cloudcarver/waitkit/pkg/risingwave"
 	counter "github.com/cloudcarver/waitkit/pkg/zgen/schemas/counter"
 	"github.com/cloudcarver/waitkit/pkg/zgen/taskgen"
 
@@ -11,12 +12,14 @@ import (
 )
 
 type Executor struct {
-	model model.ModelInterface
+	model      model.ModelInterface
+	risingwave risingwave.Client
 }
 
-func NewExecutor(model model.ModelInterface) taskgen.ExecutorInterface {
+func NewExecutor(model model.ModelInterface, risingwaveClient risingwave.Client) taskgen.ExecutorInterface {
 	return &Executor{
-		model: model,
+		model:      model,
+		risingwave: risingwaveClient,
 	}
 }
 
