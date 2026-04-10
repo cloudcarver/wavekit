@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { BackgroundDdlList } from '../models/BackgroundDdlList';
 import type { BackgroundProgressList } from '../models/BackgroundProgressList';
 import type { Cluster } from '../models/Cluster';
 import type { ClusterDatabaseList } from '../models/ClusterDatabaseList';
@@ -9,6 +10,8 @@ import type { ClusterList } from '../models/ClusterList';
 import type { ClusterRelationList } from '../models/ClusterRelationList';
 import type { ConnectClusterRequest } from '../models/ConnectClusterRequest';
 import type { ConnectClusterResult } from '../models/ConnectClusterResult';
+import type { CreateBackgroundDdlRequest } from '../models/CreateBackgroundDdlRequest';
+import type { CreateBackgroundDdlResult } from '../models/CreateBackgroundDdlResult';
 import type { CreateNotebookCellRequest } from '../models/CreateNotebookCellRequest';
 import type { CreateNotebookCellResult } from '../models/CreateNotebookCellResult';
 import type { CreateNotebookRequest } from '../models/CreateNotebookRequest';
@@ -160,6 +163,50 @@ export class DefaultService {
             },
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * List background DDL jobs with statement progress
+     * @returns BackgroundDdlList Background DDL jobs
+     * @throws ApiError
+     */
+    public static listBackgroundDdls(): CancelablePromise<BackgroundDdlList> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/background-ddls',
+        });
+    }
+    /**
+     * Create a background DDL job
+     * @param requestBody
+     * @returns CreateBackgroundDdlResult Background DDL job accepted
+     * @throws ApiError
+     */
+    public static createBackgroundDdl(
+        requestBody: CreateBackgroundDdlRequest,
+    ): CancelablePromise<CreateBackgroundDdlResult> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/background-ddls',
+            body: requestBody,
+            mediaType: 'application/json',
+        });
+    }
+    /**
+     * Cancel a background DDL job
+     * @param id
+     * @returns any Background DDL job cancellation accepted
+     * @throws ApiError
+     */
+    public static deleteBackgroundDdl(
+        id: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/background-ddls/{id}',
+            path: {
+                'id': id,
+            },
         });
     }
     /**

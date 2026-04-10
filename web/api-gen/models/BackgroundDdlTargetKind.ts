@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ExecuteSqlRequest = {
-    statement: string;
-    backgroundDDL?: boolean;
-};
-
+export enum BackgroundDdlTargetKind {
+    NONE = 'none',
+    RELATION = 'relation',
+    FUNCTION = 'function',
+}

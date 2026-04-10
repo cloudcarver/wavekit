@@ -1,0 +1,9 @@
+schemas:
+  BackgroundDDLWatcherParameters:
+    type: object
+    required:
+      - backgroundDdlJobId
+    properties:
+      backgroundDdlJobId:
+        type: string
+        format: uuid

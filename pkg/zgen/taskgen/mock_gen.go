@@ -16,6 +16,7 @@ import (
 	core "github.com/cloudcarver/anclax/core"
 	store "github.com/cloudcarver/anclax/pkg/taskcore/store"
 	worker "github.com/cloudcarver/anclax/pkg/taskcore/worker"
+	background_ddl "github.com/cloudcarver/waitkit/pkg/zgen/schemas/background_ddl"
 	counter "github.com/cloudcarver/waitkit/pkg/zgen/schemas/counter"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -82,6 +83,46 @@ func (mr *MockTaskRunnerMockRecorder) RunAutoIncrementCounterWithTx(ctx, tx, par
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]any{ctx, tx, params}, overrides...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunAutoIncrementCounterWithTx", reflect.TypeOf((*MockTaskRunner)(nil).RunAutoIncrementCounterWithTx), varargs...)
+}
+
+// RunBackgroundDDLWatcher mocks base method.
+func (m *MockTaskRunner) RunBackgroundDDLWatcher(ctx context.Context, params *background_ddl.BackgroundDDLWatcherParameters, overrides ...store.TaskOverride) (int32, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, params}
+	for _, a := range overrides {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RunBackgroundDDLWatcher", varargs...)
+	ret0, _ := ret[0].(int32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RunBackgroundDDLWatcher indicates an expected call of RunBackgroundDDLWatcher.
+func (mr *MockTaskRunnerMockRecorder) RunBackgroundDDLWatcher(ctx, params any, overrides ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, params}, overrides...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunBackgroundDDLWatcher", reflect.TypeOf((*MockTaskRunner)(nil).RunBackgroundDDLWatcher), varargs...)
+}
+
+// RunBackgroundDDLWatcherWithTx mocks base method.
+func (m *MockTaskRunner) RunBackgroundDDLWatcherWithTx(ctx context.Context, tx core.Tx, params *background_ddl.BackgroundDDLWatcherParameters, overrides ...store.TaskOverride) (int32, error) {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, tx, params}
+	for _, a := range overrides {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "RunBackgroundDDLWatcherWithTx", varargs...)
+	ret0, _ := ret[0].(int32)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RunBackgroundDDLWatcherWithTx indicates an expected call of RunBackgroundDDLWatcherWithTx.
+func (mr *MockTaskRunnerMockRecorder) RunBackgroundDDLWatcherWithTx(ctx, tx, params any, overrides ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, tx, params}, overrides...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RunBackgroundDDLWatcherWithTx", reflect.TypeOf((*MockTaskRunner)(nil).RunBackgroundDDLWatcherWithTx), varargs...)
 }
 
 // RunIncrementCounter mocks base method.
@@ -162,6 +203,20 @@ func (mr *MockExecutorInterfaceMockRecorder) ExecuteAutoIncrementCounter(ctx, ta
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteAutoIncrementCounter", reflect.TypeOf((*MockExecutorInterface)(nil).ExecuteAutoIncrementCounter), ctx, task, params)
 }
 
+// ExecuteBackgroundDDLWatcher mocks base method.
+func (m *MockExecutorInterface) ExecuteBackgroundDDLWatcher(ctx context.Context, task worker.Task, params *background_ddl.BackgroundDDLWatcherParameters) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExecuteBackgroundDDLWatcher", ctx, task, params)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ExecuteBackgroundDDLWatcher indicates an expected call of ExecuteBackgroundDDLWatcher.
+func (mr *MockExecutorInterfaceMockRecorder) ExecuteBackgroundDDLWatcher(ctx, task, params any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteBackgroundDDLWatcher", reflect.TypeOf((*MockExecutorInterface)(nil).ExecuteBackgroundDDLWatcher), ctx, task, params)
+}
+
 // ExecuteIncrementCounter mocks base method.
 func (m *MockExecutorInterface) ExecuteIncrementCounter(ctx context.Context, task worker.Task, params *counter.IncrementCounterParams) error {
 	m.ctrl.T.Helper()
@@ -174,4 +229,18 @@ func (m *MockExecutorInterface) ExecuteIncrementCounter(ctx context.Context, tas
 func (mr *MockExecutorInterfaceMockRecorder) ExecuteIncrementCounter(ctx, task, params any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteIncrementCounter", reflect.TypeOf((*MockExecutorInterface)(nil).ExecuteIncrementCounter), ctx, task, params)
+}
+
+// OnBackgroundDDLWatcherFailed mocks base method.
+func (m *MockExecutorInterface) OnBackgroundDDLWatcherFailed(ctx context.Context, taskID int32, params *background_ddl.BackgroundDDLWatcherParameters, tx core.Tx) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "OnBackgroundDDLWatcherFailed", ctx, taskID, params, tx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// OnBackgroundDDLWatcherFailed indicates an expected call of OnBackgroundDDLWatcherFailed.
+func (mr *MockExecutorInterfaceMockRecorder) OnBackgroundDDLWatcherFailed(ctx, taskID, params, tx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnBackgroundDDLWatcherFailed", reflect.TypeOf((*MockExecutorInterface)(nil).OnBackgroundDDLWatcherFailed), ctx, taskID, params, tx)
 }

@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ExecuteSqlRequest = {
-    statement: string;
-    backgroundDDL?: boolean;
+import type { BackgroundDdlJob } from './BackgroundDdlJob';
+export type BackgroundDdlList = {
+    jobs: Array<BackgroundDdlJob>;
 };
 

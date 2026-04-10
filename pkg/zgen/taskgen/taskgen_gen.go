@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cloudcarver/waitkit/pkg/zgen/schemas/background_ddl"
+
 	"github.com/cloudcarver/waitkit/pkg/zgen/schemas/counter"
 
 	"github.com/cloudcarver/anclax/core"
@@ -25,6 +27,8 @@ const (
 	AutoIncrementCounter = "AutoIncrementCounter" 
 
 	IncrementCounter = "IncrementCounter" 
+
+	BackgroundDDLWatcher = "BackgroundDDLWatcher" 
 )
 
 
@@ -39,6 +43,11 @@ type TaskRunner interface {
 	RunIncrementCounter(ctx context.Context, params *counter.IncrementCounterParams, overrides ...taskcore.TaskOverride) (int32, error)
     // Increment the counter
 	RunIncrementCounterWithTx(ctx context.Context, tx core.Tx, params *counter.IncrementCounterParams, overrides ...taskcore.TaskOverride) (int32, error)
+
+    // Watch and advance a background DDL job
+	RunBackgroundDDLWatcher(ctx context.Context, params *background_ddl.BackgroundDDLWatcherParameters, overrides ...taskcore.TaskOverride) (int32, error)
+    // Watch and advance a background DDL job
+	RunBackgroundDDLWatcherWithTx(ctx context.Context, tx core.Tx, params *background_ddl.BackgroundDDLWatcherParameters, overrides ...taskcore.TaskOverride) (int32, error)
 }
 
 type Client struct {
@@ -154,6 +163,55 @@ func (c *Client) runIncrementCounter(ctx context.Context, taskstore taskcore.Tas
 	}
 	return taskID, nil
 }
+func (c *Client) RunBackgroundDDLWatcher(ctx context.Context, params *background_ddl.BackgroundDDLWatcherParameters, overrides ...taskcore.TaskOverride) (int32, error) {
+	return c.runBackgroundDDLWatcher(ctx, c.taskStore, nil, params, overrides...)
+}
+
+func (c *Client) RunBackgroundDDLWatcherWithTx(ctx context.Context, tx core.Tx, params *background_ddl.BackgroundDDLWatcherParameters, overrides ...taskcore.TaskOverride) (int32, error) {
+	return c.runBackgroundDDLWatcher(ctx, c.taskStore, tx, params, overrides...)
+}
+
+func (c *Client) runBackgroundDDLWatcher(ctx context.Context, taskstore taskcore.TaskStoreInterface, tx core.Tx, params *background_ddl.BackgroundDDLWatcherParameters, overrides ...taskcore.TaskOverride) (int32, error) {
+	payload, err := json.Marshal(params)
+	if err != nil {
+		return 0, err
+	}
+
+	spec := apigen.TaskSpec{
+		Type:    BackgroundDDLWatcher,
+		Payload: payload,
+	}
+	attributes := apigen.TaskAttributes{}
+	
+	attributes.RetryPolicy = &apigen.TaskRetryPolicy{
+		Interval:    "5s",
+		MaxAttempts: -1,
+	}
+	
+	
+	
+	task := &apigen.Task{
+		Attributes: attributes,
+		Spec:       spec,
+		Status:     apigen.Pending,
+	}
+	
+	for _, override := range overrides {
+		if err := override(task); err != nil {
+			return 0, errors.Wrap(err, "failed to apply task override")
+		}
+	}
+	var taskID int32
+	if tx == nil {
+		taskID, err = taskstore.PushTask(ctx, task)
+	} else {
+		taskID, err = taskstore.PushTaskWithTx(ctx, tx, task)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return taskID, nil
+}
 
 
 
@@ -165,6 +223,12 @@ type ExecutorInterface interface {
      // Increment the counter
 	ExecuteIncrementCounter(ctx context.Context, task worker.Task, params *counter.IncrementCounterParams) error
  
+
+     // Watch and advance a background DDL job
+	ExecuteBackgroundDDLWatcher(ctx context.Context, task worker.Task, params *background_ddl.BackgroundDDLWatcherParameters) error
+ 
+	// Hook called when BackgroundDDLWatcher fails
+	OnBackgroundDDLWatcherFailed(ctx context.Context, taskID int32, params *background_ddl.BackgroundDDLWatcherParameters, tx core.Tx) error
 }
 
 type TaskHandler struct {
@@ -209,6 +273,13 @@ func (f *TaskHandler) HandleTask(ctx context.Context, task worker.Task) error {
 		}
 		return f.executor.ExecuteIncrementCounter(ctx, task, &params)
 		
+	case BackgroundDDLWatcher:
+		var params background_ddl.BackgroundDDLWatcherParameters
+		if err := json.Unmarshal(task.GetPayload(), &params); err != nil {
+			return fmt.Errorf("failed to parse BackgroundDDLWatcher parameters: %w", err)
+		}
+		return f.executor.ExecuteBackgroundDDLWatcher(ctx, task, &params)
+		
 	default:
 		return errors.Wrapf(worker.ErrUnknownTaskType, "unknown task type: %s", task.GetType())
 	}
@@ -227,6 +298,12 @@ func (f *TaskHandler) OnTaskFailed(ctx context.Context, tx core.Tx, failedTaskSp
 
 	// Call the appropriate OnXXXFailed hook method
 	switch failedTaskSpec.GetType() { 
+	case BackgroundDDLWatcher:
+		var params background_ddl.BackgroundDDLWatcherParameters
+		if err := json.Unmarshal(failedTaskSpec.GetPayload(), &params); err != nil {
+			return fmt.Errorf("failed to parse BackgroundDDLWatcher parameters: %w", err)
+		}
+		return f.executor.OnBackgroundDDLWatcherFailed(ctx, taskID, &params, tx)
 	default:
 		return nil // No hook configured for this task type
 	}

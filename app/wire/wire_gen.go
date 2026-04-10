@@ -8,11 +8,13 @@ package wire
 
 import (
 	"github.com/cloudcarver/waitkit/app"
+	"github.com/cloudcarver/waitkit/pkg/asynctask"
 	"github.com/cloudcarver/waitkit/pkg/config"
 	"github.com/cloudcarver/waitkit/pkg/handler"
 	"github.com/cloudcarver/waitkit/pkg/model"
 	"github.com/cloudcarver/waitkit/pkg/risingwave"
 	"github.com/cloudcarver/waitkit/pkg/service"
+	"github.com/cloudcarver/waitkit/pkg/zgen/taskgen"
 )
 
 // Injectors from wire.go:
@@ -31,14 +33,18 @@ func InitApp() (*app.App, error) {
 		return nil, err
 	}
 	client := risingwave.NewClient()
-	serviceInterface := service.NewService(modelInterface, client)
+	taskStoreInterface := app.InjectTaskStore(application)
+	taskRunner := taskgen.NewTaskRunner(taskStoreInterface)
+	serviceInterface := service.NewServiceWithTaskRunner(modelInterface, client, taskRunner)
 	serverInterface, err := handler.NewHandler(serviceInterface)
 	if err != nil {
 		return nil, err
 	}
 	authInterface := app.InjectAuth(application)
 	validator := handler.NewValidator(authInterface)
-	plugin := app.NewPlugin(serverInterface, validator)
+	executorInterface := asynctask.NewExecutor(modelInterface, client)
+	taskHandler := taskgen.NewTaskHandler(executorInterface)
+	plugin := app.NewPlugin(serverInterface, validator, taskHandler)
 	appApp, err := app.Init(application, plugin)
 	if err != nil {
 		return nil, err

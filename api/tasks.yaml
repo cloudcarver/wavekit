@@ -15,3 +15,12 @@ tasks:
       maxAttempts: -1
     parameters:
       $ref: ./schemas/counter/counter.yaml#schemas/IncrementCounterParams
+  - name: BackgroundDDLWatcher
+    description: Watch and advance a background DDL job
+    retryPolicy:
+      interval: 5s
+      maxAttempts: -1
+    events:
+      - onFailed
+    parameters:
+      $ref: ./schemas/background_ddl/background_ddl.yaml#schemas/BackgroundDDLWatcherParameters

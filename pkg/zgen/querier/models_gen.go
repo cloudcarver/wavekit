@@ -10,6 +10,47 @@ import (
 	"github.com/google/uuid"
 )
 
+type BackgroundDdlJob struct {
+	ID                uuid.UUID
+	ClusterUuid       uuid.UUID
+	DatabaseName      string
+	Statement         string
+	TaskID            *int32
+	CreatedAt         time.Time
+	StartedAt         *time.Time
+	CancelRequestedAt *time.Time
+	CancelledAt       *time.Time
+	FinishedAt        *time.Time
+	FailedAt          *time.Time
+	FailureReason     *string
+}
+
+type BackgroundDdlProgress struct {
+	ID                    uuid.UUID
+	JobID                 uuid.UUID
+	Seq                   int32
+	Statement             string
+	StatementKind         string
+	TargetKind            string
+	TargetType            *string
+	TargetSchema          *string
+	TargetName            *string
+	TargetIdentity        *string
+	ExpectRelationExists  *bool
+	RwJobIds              []int64
+	DispatchedAt          *time.Time
+	StartedAt             *time.Time
+	LastProgress          *float64
+	LastProgressTrackedAt *time.Time
+	EstimatedFinishedAt   *time.Time
+	FinishedAt            *time.Time
+	CancelledAt           *time.Time
+	FailedAt              *time.Time
+	FailureReason         *string
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+}
+
 type Cluster struct {
 	ClusterUuid         uuid.UUID
 	ClusterName         string
